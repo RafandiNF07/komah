@@ -20,6 +20,8 @@ export default function UserDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  
+
   return (
     <div className="w-full max-w-5xl mx-auto">
       
@@ -74,13 +76,25 @@ export default function UserDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         
         {/* Menu 1: Antar/Jemput */}
-        <Link href="/user/order?type=ride" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <Link href="/user/ride" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-[48px] text-tertiary" style={{ fontVariationSettings: "'FILL' 1" }}>motorcycle</span>
+            <Image
+                src="/icons/bike.png" 
+                alt="bike"
+                width={100}
+                height={100}
+                className="object-contain" 
+              />
           </div>
           <div className="relative z-10">
             <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-3 border border-outline-variant group-hover:border-tertiary transition-colors">
-              <span className="material-symbols-outlined text-tertiary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>two_wheeler</span>
+              <Image
+                src="/icons/bike.png" 
+                alt="bike"
+                width={30}
+                height={30}
+                className="object-contain" 
+              />
             </div>
             <h3 className="font-headline-sm text-[16px] font-bold text-text-primary mb-0.5">Antar/Jemput</h3>
             <p className="font-body-sm text-[12px] text-text-secondary">Pergi kuliah jadi lebih mudah dan cepat.</p>
@@ -88,13 +102,25 @@ export default function UserDashboardPage() {
         </Link>
 
         {/* Menu 2: KOMAH Food */}
-        <Link href="/user/order?type=food" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <Link href="/user/food" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-[48px] text-warning" style={{ fontVariationSettings: "'FILL' 1" }}>fastfood</span>
+            <Image
+                src="/icons/food.png" 
+                alt="food"
+                width={90}
+                height={90}
+                className="object-contain" 
+              />
           </div>
           <div className="relative z-10">
-            <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-3 border border-outline-variant group-hover:border-warning transition-colors">
-              <span className="material-symbols-outlined text-warning text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>lunch_dining</span>
+            <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-3 border border-outline-variant group-hover:border-orange transition-colors">
+              <Image
+                src="/icons/fast_food.png" 
+                alt="food"
+                width={30}
+                height={30}
+                className="object-contain" 
+              />
             </div>
             <h3 className="font-headline-sm text-[16px] font-bold text-text-primary mb-0.5">KOMAH Food</h3>
             <p className="font-body-sm text-[12px] text-text-secondary">Lapar? Kami antar sampai depan kelas.</p>
@@ -102,13 +128,25 @@ export default function UserDashboardPage() {
         </Link>
 
         {/* Menu 3: Delivery */}
-        <Link href="/user/order?type=delivery" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <Link href="/user/delivery" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-[48px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>package</span>
+            <Image
+                src="/icons/truck.png" 
+                alt="truck"
+                width={100}
+                height={100}
+                className="object-contain" 
+              />
           </div>
           <div className="relative z-10">
-            <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-3 border border-outline-variant group-hover:border-secondary transition-colors">
-              <span className="material-symbols-outlined text-secondary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>local_shipping</span>
+            <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-3 border border-outline-variant group-hover:border-purple transition-colors">
+              <Image
+                src="/icons/delivery2.png" 
+                alt="delivery"
+                width={30}
+                height={30}
+                className="object-contain" 
+              />
             </div>
             <h3 className="font-headline-sm text-[16px] font-bold text-text-primary mb-0.5">Delivery</h3>
             <p className="font-body-sm text-[12px] text-text-secondary">Kirim dokumen atau barang tanpa repot.</p>
@@ -116,13 +154,25 @@ export default function UserDashboardPage() {
         </Link>
 
         {/* Menu 4: Helper */}
-        <Link href="/user/order?type=helper" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+        <Link href="/user/helper" className="block group relative bg-surface-container-low rounded-xl p-4 border border-border-subtle overflow-hidden hover:border-tertiary/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-[48px] text-success" style={{ fontVariationSettings: "'FILL' 1" }}>handshake</span>
+            <Image
+              src="/icons/handshake.png"
+              alt="handshake"
+              width={90}
+              height={90}
+              className="object-contain"
+            />
           </div>
           <div className="relative z-10">
             <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center mb-3 border border-outline-variant group-hover:border-success transition-colors">
-              <span className="material-symbols-outlined text-success text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>volunteer_activism</span>
+              <Image
+                src="/icons/heart.png" 
+                alt="heart"
+                width={30}
+                height={30}
+                className="object-contain" 
+              />
             </div>
             <h3 className="font-headline-sm text-[16px] font-bold text-text-primary mb-0.5">Helper</h3>
             <p className="font-body-sm text-[12px] text-text-secondary">Bantuan jasa cepat untuk kebutuhan mendadak.</p>

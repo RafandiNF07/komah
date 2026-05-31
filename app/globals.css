@@ -19,7 +19,10 @@
   --color-text-primary: #F9FAFB;
   --color-text-secondary: #9CA3AF;
   --color-success: #10B981;
-  --color-close: #db1414;
+  --color-close: #ef4444;
+  --color-orange: #f59e0b;
+  --color-purple: #adc8f5;
+  --color-cancel: #ff8f8f;
 
   --spacing-container-margin: 16px;
   --spacing-card-padding: 20px;

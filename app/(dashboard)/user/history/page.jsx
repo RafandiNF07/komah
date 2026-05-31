@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // <-- TAMBAHKAN IMPORT INI
 
-// --- DATA DUMMY UNTUK SIMULASI ---
+// --- DATA DUMMY ---
 const dummyOrders = [
   {
     id: 'ORD-001',
@@ -14,10 +15,7 @@ const dummyOrders = [
     destination: 'Gedung Rektorat UIN',
     price: 'Rp 5.000',
     status: 'aktif',
-    statusText: 'Driver Menuju Lokasi',
-    icon: 'two_wheeler',
-    iconColor: 'text-tertiary',
-    bgIcon: 'bg-tertiary/20'
+    statusText: 'Driver Menuju Lokasi'
   },
   {
     id: 'ORD-002',
@@ -28,10 +26,7 @@ const dummyOrders = [
     destination: 'Lobby Fakultas Ekonomi',
     price: 'Rp 18.000',
     status: 'selesai',
-    statusText: 'Selesai',
-    icon: 'lunch_dining',
-    iconColor: 'text-warning',
-    bgIcon: 'bg-warning/20'
+    statusText: 'Selesai'
   },
   {
     id: 'ORD-003',
@@ -42,10 +37,7 @@ const dummyOrders = [
     destination: 'Kosan Mawar Baru',
     price: 'Rp 8.000',
     status: 'selesai',
-    statusText: 'Selesai',
-    icon: 'local_shipping',
-    iconColor: 'text-secondary',
-    bgIcon: 'bg-secondary/20'
+    statusText: 'Selesai'
   },
   {
     id: 'ORD-004',
@@ -56,18 +48,13 @@ const dummyOrders = [
     destination: '-',
     price: 'Rp 15.000',
     status: 'batal',
-    statusText: 'Dibatalkan',
-    icon: 'volunteer_activism',
-    iconColor: 'text-success',
-    bgIcon: 'bg-success/20'
+    statusText: 'Dibatalkan'
   }
 ];
 
 export default function HistoryPage() {
-  // State untuk Tab Aktif (Default: Semua)
   const [activeTab, setActiveTab] = useState('semua');
 
-  // Filter data berdasarkan tab yang dipilih
   const filteredOrders = dummyOrders.filter(order => {
     if (activeTab === 'semua') return true;
     if (activeTab === 'aktif') return order.status === 'aktif';
@@ -75,10 +62,27 @@ export default function HistoryPage() {
     return true;
   });
 
+  // --- FUNGSI PINTAR PENENTU GAMBAR IKON ---
+  // Sekarang mengembalikan alamat file gambar (imageSrc)
+  const getServiceStyle = (type) => {
+    switch (type) {
+      case 'ride':
+        return { imageSrc: '/icons/bike.png', bg: 'bg-tertiary/20' };
+      case 'food':
+        return { imageSrc: '/icons/fast_food.png', bg: 'bg-orange/20' };
+      case 'delivery':
+        return { imageSrc: '/icons/delivery2.png', bg: 'bg-purple/20' };
+      case 'helper':
+        return { imageSrc: '/icons/heart.png', bg: 'bg-success/20' };
+      default:
+        // Gambar default jika tipenya tidak diketahui (pastikan punya default gambar atau pakai icon biasa)
+        return { imageSrc: '/icons/motor.png', bg: 'bg-surface-container-high' }; 
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto pb-6">
       
-      {/* Header Halaman */}
       <div className="mb-6 pt-2 md:pt-0">
         <h1 className="font-headline-md text-[24px] md:text-[28px] font-bold text-text-primary">
           Riwayat Pesanan
@@ -88,7 +92,6 @@ export default function HistoryPage() {
         </p>
       </div>
 
-      {/* Tabs Filter */}
       <div className="flex items-center gap-2 mb-6 border-b border-outline-variant/30 pb-4 overflow-x-auto hide-scrollbar">
         <button 
           onClick={() => setActiveTab('semua')}
@@ -108,7 +111,6 @@ export default function HistoryPage() {
               : 'bg-surface-container border border-outline-variant/50 text-text-secondary hover:text-tertiary hover:border-tertiary/50'
           }`}
         >
-          {/* Tambahkan indikator titik jika ada pesanan aktif */}
           <span className="w-2 h-2 rounded-full bg-danger animate-pulse"></span>
           Sedang Aktif
         </button>
@@ -124,92 +126,133 @@ export default function HistoryPage() {
         </button>
       </div>
 
-      {/* Daftar Pesanan */}
       <div className="space-y-4">
         {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => (
-            <div key={order.id} className="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-4 md:p-5 hover:border-tertiary/40 transition-colors shadow-sm">
-            
-              {/* Header Card (Ikon, Judul, Tanggal & Status) */}
-              <div className="flex justify-between items-start mb-4 border-b border-outline-variant/20 pb-3">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${order.bgIcon}`}>
-                    <span className={`material-symbols-outlined text-[20px] ${order.iconColor}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                      {order.icon}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-headline-sm text-[16px] font-bold text-text-primary">
-                      {order.title}
-                    </h3>
-                    <p className="font-body-sm text-[12px] text-text-secondary">
-                      {order.date}
-                    </p>
-                  </div>
-                </div>
+          filteredOrders.map((order) => {
+            const style = getServiceStyle(order.type);
 
-                {/* Badge Status */}
-                <div className={`px-3 py-1 rounded-md font-label-mono text-[11px] font-bold flex items-center gap-1.5 ${
-                  order.status === 'aktif' ? 'bg-tertiary/20 text-tertiary animate-pulse' :
-                  order.status === 'selesai' ? 'bg-success/20 text-success' :
-                  'bg-danger/20 text-danger'
-                }`}>
-                  {order.status === 'aktif' && <span className="material-symbols-outlined text-[14px]">sync</span>}
-                  {order.status === 'selesai' && <span className="material-symbols-outlined text-[14px]">check_circle</span>}
-                  {order.status === 'batal' && <span className="material-symbols-outlined text-[14px]">cancel</span>}
-                  {order.statusText}
-                </div>
-              </div>
-
-              {/* Body Card (Lokasi & Harga) */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            return (
+              <div key={order.id} className="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-4 md:p-5 hover:border-tertiary/40 transition-colors shadow-sm">
                 
-                {/* Info Rute */}
-                <div className="space-y-3 flex-1">
-                  <div className="flex items-start gap-3">
-                    <span className="material-symbols-outlined text-tertiary text-[18px] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>my_location</span>
+                <div className="flex justify-between items-start mb-4 border-b border-outline-variant/20 pb-3">
+                  <div className="flex items-center gap-3">
+                    
+                    {/* --- BAGIAN YANG DIUBAH MENJADI GAMBAR --- */}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-outline-variant/20 ${style.bg}`}>
+                      <Image 
+                        src={style.imageSrc} 
+                        alt={order.type}
+                        width={22} 
+                        height={22}
+                        className="object-contain"
+                      />
+                    </div>
+                    {/* ------------------------------------------ */}
+                    
                     <div>
-                      <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">Titik Awal</p>
-                      <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.pickup}</p>
+                      <h3 className="font-headline-sm text-[16px] font-bold text-text-primary">
+                        {order.title}
+                      </h3>
+                      <p className="font-body-sm text-[12px] text-text-secondary">
+                        {order.date}
+                      </p>
                     </div>
                   </div>
-                  
-                  {/* Hanya tampilkan tujuan jika layanannya bukan helper yang tidak pindah tempat */}
-                  {order.destination !== '-' && (
+
+                  <div className={`px-3 py-1 rounded-md font-label-mono text-[11px] font-bold flex items-center gap-1.5 ${
+                    order.status === 'aktif' ? 'bg-tertiary/20 text-tertiary animate-pulse' :
+                    order.status === 'selesai' ? 'bg-success/20 text-success' :
+                    'bg-close/20 text-cancel'
+                  }`}>
+
+                    {order.status === 'aktif' && 
+                      <Image 
+                        src="/icons/bike.png" 
+                        alt="bike"
+                        width={20} 
+                        height={20}
+                        className="absolut left-4"
+                      />
+                    }
+
+                    {order.status === 'selesai' && 
+                      <Image 
+                        src="/icons/check.png" 
+                        alt="check"
+                        width={20} 
+                        height={20}
+                        className="absolut left-4"
+                      />
+                    }
+
+                    {order.status === 'batal' && 
+                      <Image 
+                        src="/icons/cancel.png" 
+                        alt="cancel"
+                        width={20} 
+                        height={20}
+                        className="absolut left-4"
+                      />
+                    }
+
+                    {order.statusText}
+                  </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-3 flex-1">
                     <div className="flex items-start gap-3">
-                      <span className="material-symbols-outlined text-danger text-[18px] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
+                      <Image 
+                        src="/icons/jemput1.png" 
+                        alt="jemput"
+                        width={20} 
+                        height={20}
+                        className="absolut left-4"
+                      />
                       <div>
-                        <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">Titik Tujuan</p>
-                        <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.destination}</p>
+                        <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">Titik Awal</p>
+                        <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.pickup}</p>
                       </div>
                     </div>
-                  )}
-                </div>
+                    
+                    {order.destination !== '-' && (
+                      <div className="flex items-start gap-3">
+                        <Image 
+                          src="/icons/tujuan.png" 
+                          alt="tujuan"
+                          width={20} 
+                          height={20}
+                          className="absolut left-4"
+                        />
+                        <div>
+                          <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">Titik Tujuan</p>
+                          <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.destination}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Info Harga & ID */}
-                <div className="flex flex-row md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-outline-variant/30 pt-3 md:pt-0 md:pl-4 min-w-[120px]">
-                  <p className="font-label-mono text-[11px] text-text-secondary">Total Biaya</p>
-                  <p className="font-headline-sm text-[18px] font-bold text-text-primary">{order.price}</p>
-                  <p className="font-label-mono text-[10px] text-outline mt-1 hidden md:block">{order.id}</p>
+                  <div className="flex flex-row md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-outline-variant/30 pt-3 md:pt-0 md:pl-4 min-w-[120px]">
+                    <p className="font-label-mono text-[11px] text-text-secondary">Total Biaya</p>
+                    <p className="font-headline-sm text-[18px] font-bold text-text-primary">{order.price}</p>
+                    <p className="font-label-mono text-[10px] text-outline mt-1 hidden md:block">{order.id}</p>
+                  </div>
                 </div>
+                
+                {order.status === 'aktif' && (
+                  <div className="mt-4 pt-3 border-t border-outline-variant/20 flex gap-3">
+                    <button className="flex-1 py-2 bg-surface-container-high text-text-primary font-label-mono text-[13px] rounded-lg hover:bg-tertiary hover:text-on-tertiary transition-colors">
+                      Hubungi Driver
+                    </button>
+                    <button className="flex-1 py-2 bg-surface-container-high text-danger font-label-mono text-[13px] rounded-lg hover:bg-danger/20 transition-colors">
+                      Batalkan Pesanan
+                    </button>
+                  </div>
+                )}
               </div>
-              
-              {/* Tombol Aksi (Khusus untuk pesanan aktif) */}
-              {order.status === 'aktif' && (
-                <div className="mt-4 pt-3 border-t border-outline-variant/20 flex gap-3">
-                  <button className="flex-1 py-2 bg-surface-container-high text-text-primary font-label-mono text-[13px] rounded-lg hover:bg-tertiary hover:text-on-tertiary transition-colors">
-                    Hubungi Driver
-                  </button>
-                  <button className="flex-1 py-2 bg-surface-container-high text-danger font-label-mono text-[13px] rounded-lg hover:bg-danger/20 transition-colors">
-                    Batalkan Pesanan
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
+            );
+          })
         ) : (
-          
-         /* Kondisi Jika Kosong (Gunakan kurung kurawal untuk menutup elemen JSX) */
           <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-8 flex flex-col items-center justify-center text-center mt-8">
             <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-4">
               <span className="material-symbols-outlined text-4xl text-outline-variant">receipt_long</span>

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 
-export default function ProfilePage() {
+export default function DriverProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   
@@ -12,44 +12,40 @@ export default function ProfilePage() {
 
   // Memuat foto profil dari penyimpanan lokal (saat web pertama kali dibuka)
   useEffect(() => {
-    const savedImage = localStorage.getItem('userProfilePic');
+    // Menggunakan key yang berbeda agar tidak tertukar dengan profil user
+    const savedImage = localStorage.getItem('driverProfilePic');
     if (savedImage) {
       setProfileImage(savedImage);
     }
   }, []);
 
-  // Logika saat pengguna memilih gambar dari galeri
+  // Logika saat driver memilih gambar dari galeri
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Gunakan FileReader untuk membaca gambar dan mengubahnya jadi teks (Base64)
       const reader = new FileReader();
       
       reader.onloadend = () => {
-        const base64String = reader.result; // Ini adalah wujud gambar dalam bentuk teks
+        const base64String = reader.result;
         
         setProfileImage(base64String);
+        localStorage.setItem('driverProfilePic', base64String);
         
-        // Simpan teks Base64 ini ke Local Storage
-        localStorage.setItem('userProfilePic', base64String);
-        
-        // Tembakkan sinyal ke Navbar agar ikut berubah
-        window.dispatchEvent(new Event('profilePictureUpdated'));
+        // Tembakkan sinyal ke Navbar Driver agar ikut berubah
+        window.dispatchEvent(new Event('driverProfilePictureUpdated'));
       };
       
-      // Eksekusi pembacaan file
       reader.readAsDataURL(file);
     }
   };
 
   return (
-    // Dibuat lebih rapat agar muat di satu layar (halaman)
     <div className="w-full max-w-2xl mx-auto pb-4">
       
-      {/* Header Profil (Dikecilkan jaraknya) */}
+      {/* Header Profil */}
       <div className="mb-4 pt-2 md:pt-0 flex items-end justify-center">
         <div className="text-center">
-          <h1 className="font-headline-md text-[35px] font-bold text-text-primary">Profil Saya</h1>
+          <h1 className="font-headline-md text-[35px] font-bold text-text-primary">Profil Driver</h1>
           <p className="font-body-sm text-[14px] text-text-secondary mt-0.5">Kelola informasi akun Anda.</p>
         </div>
       </div>
@@ -57,10 +53,9 @@ export default function ProfilePage() {
       {/* Card Profil Utama */}
       <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-5 md:p-6 shadow-md">
         
-        {/* FOTO PROFIL (Sekarang tombol pensil yang diklik untuk upload) */}
+        {/* FOTO PROFIL */}
         <div className="flex flex-col items-center mb-6 pb-6 border-b border-outline-variant/30">
           
-          {/* Input File Tersembunyi */}
           <input 
             type="file" 
             accept="image/*" 
@@ -69,12 +64,10 @@ export default function ProfilePage() {
             className="hidden" 
           />
 
-          {/* Container Profil & Tombol Edit */}
           <div className="relative">
-            {/* Bingkai Foto (Tidak lagi bisa diklik secara langsung) */}
             <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
                {profileImage ? (
-                 <Image src={profileImage} alt="Profil" width={96} height={96} className="w-full h-full object-cover" />
+                 <Image src={profileImage} alt="Profil Driver" width={96} height={96} className="w-full h-full object-cover" />
                ) : (
                  <Image
                     src="/icons/person.png"
@@ -85,7 +78,6 @@ export default function ProfilePage() {
                )}
             </div>
             
-            {/* Tombol Pensil Kecil (Muncul saat mode edit aktif) */}
             {isEditing && (
               <button 
                 onClick={() => fileInputRef.current.click()}
@@ -103,20 +95,21 @@ export default function ProfilePage() {
             )}
           </div>
           
-          <h2 className="font-headline-md text-[20px] font-bold text-text-primary mt-3">Lisa Harniati</h2>
-          <p className="font-label-mono text-[12px] text-text-secondary mt-0.5">Mahasiswa UIN Suska Riau</p>
+          <h2 className="font-headline-md text-[20px] font-bold text-text-primary mt-3">Aqsya Aurora</h2>
+          <p className="font-label-mono text-[12px] text-tertiary mt-0.5 font-bold">Mitra Driver KOMAH</p>
           
         </div>
 
-        {/* Form Data Diri (Lebih Rapat) */}
+        {/* Form Data Diri */}
         <div className="space-y-4">
           
+          {/* Baris 1: Nama & WA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nama Lengkap</label>
               <input 
                 type="text" 
-                defaultValue="Lisa Harniati" 
+                defaultValue="Aqsya Aurora" 
                 disabled={!isEditing}
                 className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
               />
@@ -133,19 +126,20 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Baris 2: Email (Dikunci) */}
           <div className="space-y-1.5">
-            <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Email Students</label>
+            <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Email Driver</label>
             <div className="relative flex items-center">
               <Image
-                    src="/icons/email.png"
-                    alt="email"
-                    width={20} 
-                    height={20}
-                    className="absolute left-3"
-                  />
+                src="/icons/email.png"
+                alt="email"
+                width={20} 
+                height={20}
+                className="absolute left-3"
+              />
               <input 
                 type="email" 
-                value="lisa.harniati@student.uin-suska.ac.id" 
+                value="budi.santoso@student.uin-suska.ac.id" 
                 disabled 
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/20 rounded-xl text-text-secondary font-body-md text-[13px] cursor-not-allowed"
               />
@@ -163,7 +157,7 @@ export default function ProfilePage() {
                   Batal
                 </button>
                 <button 
-                  onClick={() => { setIsEditing(false); alert("Profil berhasil diperbarui!"); }}
+                  onClick={() => { setIsEditing(false); alert("Profil Driver berhasil diperbarui!"); }}
                   className="flex-[2] py-3 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/30 transition-all font-label-mono text-[13px]"
                 >
                   Simpan Perubahan
@@ -172,7 +166,6 @@ export default function ProfilePage() {
             ) : (
               <button 
                 onClick={() => setIsEditing(true)}
-                // Tambahkan 'group' di depan agar elemen di dalamnya bisa merespon hover bersamaan
                 className="group w-full py-3 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-tertiary/30 active:scale-95 font-label-mono text-[14px] flex items-center justify-center gap-2.5"
               >
               <Image
@@ -180,7 +173,6 @@ export default function ProfilePage() {
                 alt="edit"
                 width={20} 
                 height={20}
-                // Perbaikan 'object-contain' dan penambahan animasi rotasi/skala saat tombol di-hover
                 className="object-contain transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110"
               />
                 <span>Edit Profil</span>

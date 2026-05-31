@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -8,6 +8,8 @@ import Image from 'next/image';
 export default function UserDashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
+  // 2. Tambahkan state ini untuk menyimpan foto Navbar
+  const [navProfilePic, setNavProfilePic] = useState(null);
 
   // State untuk mengontrol Sidebar di Mobile
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -25,6 +27,28 @@ export default function UserDashboardLayout({ children }) {
     router.push('/'); // Mengarahkan ke Landing Page
   };
 
+
+
+  // 3. Pasang pendengar (Listener) ini
+  useEffect(() => {
+    // Fungsi untuk mengambil foto dari storage
+    const loadProfilePic = () => {
+      const savedPic = localStorage.getItem('userProfilePic');
+      if (savedPic) setNavProfilePic(savedPic);
+    };
+
+    // Ambil foto saat pertama kali web dibuka
+    loadProfilePic();
+
+    // Dengarkan jika ada perubahan dari halaman Profil
+    window.addEventListener('profilePictureUpdated', loadProfilePic);
+
+    // Bersihkan listener saat halaman ditutup
+    return () => window.removeEventListener('profilePictureUpdated', loadProfilePic);
+  }, []);
+
+
+
   return (
     <div className="flex h-[100dvh] w-full bg-background text-text-primary font-body-md antialiased overflow-hidden relative">
       
@@ -39,7 +63,7 @@ export default function UserDashboardLayout({ children }) {
         >
           {/* Cukup tampilkan gambar hamburger saja */}
           <Image
-            src="/icons/hamburger1.png"
+            src="/icons/hamburger.png"
             alt="menu"
             width={32}
             height={32}
@@ -85,13 +109,24 @@ export default function UserDashboardLayout({ children }) {
         {/* Profil Singkat Pelanggan */}
         <div className="flex flex-col items-center mb-8 pb-4 border-b border-outline-variant w-full mt-10 md:mt-0">
           <div className="w-24 h-24 rounded-full mb-3 overflow-hidden ring-2 ring-tertiary relative bg-surface-container-high flex items-center justify-center">
-            <Image
-              src="/icons/purplesunflower.jpg"
-              alt="Foto Profil"
-              width={96} 
-              height={96}
-              className="object-cover w-full h-full" 
-            />
+            {/* LOGIKA FOTO PROFIL DINAMIS */}
+            {navProfilePic ? (
+              // Kita pakai tag <img> biasa (bukan bawaan Next.js) karena format gambar 
+              // dari galeri hp/laptop (blob/base64) kadang ditolak oleh komponen <Image> Next.js
+              <img
+                src={navProfilePic}
+                alt="Foto Profil"
+                className="object-cover w-full h-full" 
+              />
+            ) : (
+              // Ikon default jika belum ada foto yang di-upload
+              <Image
+                src="/icons/person.png"
+                alt="person"
+                width={80} 
+                height={80}
+              />
+            )}
           </div>
           <h3 className="font-headline-sm text-[20px] text-text-primary">Lisa Harniati</h3>
           <span className="font-label-mono text-[14px] text-text-secondary mt-1">Pelanggan</span>
@@ -202,7 +237,7 @@ export default function UserDashboardLayout({ children }) {
           <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all">
             
             {/* Ikon Peringatan */}
-            <div className="w-16 h-16 rounded-full bg-danger/10 flex items-center justify-center mx-auto mb-4 border border-danger/20">
+            <div className="w-16 h-16 rounded-full bg-cancel/10 flex items-center justify-center mx-auto mb-4 border border-cancel/20">
               <Image
                 src="/icons/logout.png"
                 alt="logout"
