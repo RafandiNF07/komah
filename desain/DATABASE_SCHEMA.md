@@ -68,8 +68,10 @@ CREATE TABLE orders (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
 
-    CONSTRAINT check_customer_not_driver CHECK (customer_id IS DISTINCT FROM driver_id)
 );
+
+-- Aktifkan Supabase Realtime untuk tabel orders agar perubahan status ter-update otomatis di aplikasi
+ALTER PUBLICATION supabase_realtime ADD TABLE orders;
 
 -- =========================================================================
 -- 4. INDICES
@@ -104,7 +106,7 @@ CREATE POLICY "Users update own profile" ON profiles FOR UPDATE USING (auth.uid(
 
 -- Orders: Akses CRUD standar
 CREATE POLICY "Customers see own orders" ON orders FOR SELECT USING (auth.uid() = customer_id);
-CREATE POLICY "Drivers see active or assigned orders" ON orders FOR SELECT USING (status = 'searching' OR auth.uid() = driver_id);
+CREATE POLICY "Drivers see active or assigned orders" ON orders FOR SELECT USING (status IN ('searching', 'cancelled') OR auth.uid() = driver_id);
 CREATE POLICY "Customers create orders" ON orders FOR INSERT WITH CHECK (auth.uid() = customer_id);
 CREATE POLICY "Update own orders" ON orders FOR UPDATE USING (auth.uid() = customer_id OR auth.uid() = driver_id);
 
@@ -122,6 +124,27 @@ BEGIN
   UPDATE public.orders
   SET driver_id = auth.uid(), status = 'accepted'
   WHERE id = order_uuid AND driver_id IS NULL AND status = 'searching';
+
+  GET DIAGNOSTICS affected_rows = ROW_COUNT;
+  RETURN affected_rows > 0;
+END;
+$$;
+
+-- =========================================================================
+-- 7.1 RPC: RELEASE ORDER (Driver Releasing Order safely)
+-- =========================================================================
+CREATE OR REPLACE FUNCTION public.release_order(order_uuid UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  affected_rows INTEGER;
+BEGIN
+  -- Driver hanya bisa melepas pesanan jika statusnya 'accepted' dan dia adalah drivernya
+  UPDATE public.orders
+  SET driver_id = NULL, status = 'searching'
+  WHERE id = order_uuid AND driver_id = auth.uid() AND status = 'accepted';
 
   GET DIAGNOSTICS affected_rows = ROW_COUNT;
   RETURN affected_rows > 0;

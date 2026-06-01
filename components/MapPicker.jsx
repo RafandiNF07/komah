@@ -118,6 +118,91 @@ export default function MapPicker({
   const [routeGeometry, setRouteGeometry] = useState([]);
   const [calculatingRoute, setCalculatingRoute] = useState(false);
 
+  // Search states
+  const [pickupQuery, setPickupQuery] = useState('');
+  const [destinationQuery, setDestinationQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [activeQueryType, setActiveQueryType] = useState(null); // 'pickup' atau 'destination'
+
+  // Sync search queries with geocoded addresses
+  useEffect(() => {
+    if (pickup) {
+      setPickupQuery(pickup.address);
+    }
+  }, [pickup]);
+
+  useEffect(() => {
+    if (destination) {
+      setDestinationQuery(destination.address);
+    }
+  }, [destination]);
+
+  useEffect(() => {
+    if (address) {
+      setPickupQuery(address);
+    }
+  }, [address]);
+
+  const handleSearchQuery = async (query, type) => {
+    setActiveQueryType(type);
+    if (type === 'pickup') {
+      setPickupQuery(query);
+    } else {
+      setDestinationQuery(query);
+    }
+
+    if (!query || query.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=id&addressdetails=1`,
+        { headers: { 'Accept-Language': 'id' } }
+      );
+      const data = await response.json();
+      const results = data.map((item) => ({
+        label: item.display_name,
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+      }));
+      setSuggestions(results);
+    } catch (err) {
+      console.error('Error searching address:', err);
+    }
+  };
+
+  const handleSelectSuggestion = (suggestion, type) => {
+    const newLocation = {
+      lat: suggestion.lat,
+      lng: suggestion.lng,
+      address: suggestion.label,
+    };
+
+    if (mode === 'single') {
+      setPosition([suggestion.lat, suggestion.lng]);
+      setAddress(suggestion.label);
+      onLocationSelect?.(newLocation);
+    } else {
+      if (type === 'pickup') {
+        setPickup(newLocation);
+        setPickupQuery(suggestion.label);
+        if (!destination) {
+          setActiveSelect('destination');
+        }
+      } else {
+        setDestination(newLocation);
+        setDestinationQuery(suggestion.label);
+        if (!pickup) {
+          setActiveSelect('pickup');
+        }
+      }
+    }
+    setSuggestions([]);
+    setActiveQueryType(null);
+  };
+
   const icon = markerType === 'pickup' ? pickupIcon : destinationIcon;
 
   // Sync initial values asynchronously to prevent cascading renders
@@ -297,15 +382,26 @@ export default function MapPicker({
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-label-mono text-[10px] text-text-secondary uppercase tracking-wider">{pickupLabel}</p>
-              <p className="font-body-sm text-[13px] text-text-primary truncate font-medium mt-0.5">
-                {loadingAddress && activeSelect === 'pickup' ? (
-                  <span className="text-text-secondary animate-pulse">Memuat alamat...</span>
-                ) : pickup ? (
-                  pickup.address
-                ) : (
-                  'Pilih titik penjemputan di peta...'
-                )}
-              </p>
+              {activeSelect === 'pickup' ? (
+                <input
+                  type="text"
+                  placeholder="Ketik / cari lokasi penjemputan..."
+                  value={pickupQuery}
+                  onChange={(e) => handleSearchQuery(e.target.value, 'pickup')}
+                  className="w-full bg-transparent border-none text-[13px] text-text-primary font-medium focus:outline-none placeholder-text-secondary/60 mt-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <p className="font-body-sm text-[13px] text-text-primary truncate font-medium mt-0.5">
+                  {loadingAddress && activeSelect === 'pickup' ? (
+                    <span className="text-text-secondary animate-pulse">Memuat alamat...</span>
+                  ) : pickup ? (
+                    pickup.address
+                  ) : (
+                    'Pilih titik penjemputan di peta...'
+                  )}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -335,15 +431,26 @@ export default function MapPicker({
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-label-mono text-[10px] text-text-secondary uppercase tracking-wider">{destinationLabel}</p>
-              <p className="font-body-sm text-[13px] text-text-primary truncate font-medium mt-0.5">
-                {loadingAddress && activeSelect === 'destination' ? (
-                  <span className="text-text-secondary animate-pulse">Memuat alamat...</span>
-                ) : destination ? (
-                  destination.address
-                ) : (
-                  'Pilih titik tujuan di peta...'
-                )}
-              </p>
+              {activeSelect === 'destination' ? (
+                <input
+                  type="text"
+                  placeholder="Ketik / cari lokasi tujuan..."
+                  value={destinationQuery}
+                  onChange={(e) => handleSearchQuery(e.target.value, 'destination')}
+                  className="w-full bg-transparent border-none text-[13px] text-text-primary font-medium focus:outline-none placeholder-text-secondary/60 mt-0.5"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <p className="font-body-sm text-[13px] text-text-primary truncate font-medium mt-0.5">
+                  {loadingAddress && activeSelect === 'destination' ? (
+                    <span className="text-text-secondary animate-pulse">Memuat alamat...</span>
+                  ) : destination ? (
+                    destination.address
+                  ) : (
+                    'Pilih titik tujuan di peta...'
+                  )}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -359,6 +466,24 @@ export default function MapPicker({
             </button>
           </div>
         </div>
+
+        {/* Floating Suggestions Dropdown */}
+        {suggestions.length > 0 && activeQueryType && (
+          <div className="bg-surface-container border border-outline-variant rounded-2xl p-2 shadow-2xl space-y-1 z-[60] max-h-[220px] overflow-y-auto animate-fade-in relative mt-1">
+            <div className="text-[10px] font-label-mono text-tertiary uppercase font-bold tracking-wider px-3 py-1 bg-surface-container-high/30 rounded-md mb-1.5">Hasil Pencarian</div>
+            {suggestions.map((s, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleSelectSuggestion(s, activeQueryType)}
+                className="w-full text-left px-4 py-2.5 rounded-xl hover:bg-tertiary/10 hover:text-tertiary font-body-sm text-[13px] text-text-primary transition-all flex items-start gap-2 border border-transparent hover:border-tertiary/20"
+              >
+                <Image src="/icons/jemput.png" alt="pin" width={16} height={16} className="object-contain mt-0.5 shrink-0" />
+                <span className="truncate">{s.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Map Display Panel */}
         <div className="rounded-2xl overflow-hidden border border-outline-variant/30 h-[280px] relative shadow-lg">
@@ -436,15 +561,19 @@ export default function MapPicker({
         {label}
       </label>
 
-      {/* Address Display */}
-      <div className="flex items-center gap-2">
+      {/* Address Display / Search Input */}
+      <div className="flex items-center gap-2 relative">
         <div className="flex-1 bg-surface-container-low border border-outline-variant rounded-xl px-4 py-3 text-sm min-h-[44px] flex items-center">
           {loadingAddress ? (
             <span className="text-text-secondary animate-pulse">Memuat alamat...</span>
-          ) : address ? (
-            <span className="text-text-primary line-clamp-2">{address}</span>
           ) : (
-            <span className="text-text-secondary">{placeholder}</span>
+            <input
+              type="text"
+              placeholder={placeholder}
+              value={pickupQuery}
+              onChange={(e) => handleSearchQuery(e.target.value, markerType)}
+              className="w-full bg-transparent border-none text-[13px] text-text-primary font-medium focus:outline-none placeholder-text-secondary/60"
+            />
           )}
         </div>
         <button
@@ -473,6 +602,24 @@ export default function MapPicker({
           )}
         </button>
       </div>
+
+      {/* Suggestions for Single Mode */}
+      {suggestions.length > 0 && activeQueryType === markerType && (
+        <div className="bg-surface-container border border-outline-variant rounded-2xl p-2 shadow-2xl space-y-1 z-[60] max-h-[180px] overflow-y-auto animate-fade-in mt-1">
+          <div className="text-[10px] font-label-mono text-tertiary uppercase font-bold tracking-wider px-3 py-1 bg-surface-container-high/30 rounded-md mb-1">Hasil Pencarian</div>
+          {suggestions.map((s, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSelectSuggestion(s, markerType)}
+              className="w-full text-left px-4 py-2.5 rounded-xl hover:bg-tertiary/10 hover:text-tertiary font-body-sm text-[13px] text-text-primary transition-all flex items-start gap-2 border border-transparent hover:border-tertiary/20"
+            >
+              <Image src="/icons/jemput.png" alt="pin" width={16} height={16} className="object-contain mt-0.5 shrink-0" />
+              <span className="truncate">{s.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Map */}
       <div className="rounded-xl overflow-hidden border border-outline-variant h-[220px]">

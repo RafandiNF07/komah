@@ -18,9 +18,37 @@ export default function DriverProfilePage() {
   const [nomorWA, setNomorWA] = useState('');
   const [platNomor, setPlatNomor] = useState('');
   const [jenisKendaraan, setJenisKendaraan] = useState('');
+
+  // Mode switching state
+  const [switchingRole, setSwitchingRole] = useState(false);
   
   // Referensi untuk memicu klik pada input file tersembunyi
   const fileInputRef = useRef(null);
+
+  // Switch role handler (Driver ke Customer)
+  const handleSwitchRole = async () => {
+    if (!user || !profile) return;
+    
+    setSwitchingRole(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: 'customer' })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      setFeedback({ type: 'success', message: 'Berhasil beralih ke Mode Pelanggan!' });
+      setTimeout(() => {
+        window.location.href = '/user';
+      }, 1000);
+    } catch (err) {
+      console.error('Error switching to customer:', err);
+      setFeedback({ type: 'error', message: 'Gagal beralih peran. Silakan coba lagi.' });
+      setSwitchingRole(false);
+    }
+  };
 
   // Sync form state when profile data loads
   useEffect(() => {
@@ -354,6 +382,38 @@ export default function DriverProfilePage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ================= CARD TUKAR MODE ================= */}
+      <div className="mt-6 bg-surface-container border border-outline-variant/30 rounded-2xl p-5 md:p-6 shadow-md transition-all duration-300 hover:shadow-lg">
+        <h3 className="font-headline-md text-[18px] font-bold text-text-primary mb-2 flex items-center gap-2">
+          <Image src="/icons/person.png" alt="mode" width={24} height={24} />
+          Beralih Peran (Mode Akun)
+        </h3>
+        <p className="font-body-sm text-[13px] text-text-secondary mb-4 leading-relaxed">
+          Anda saat ini masuk sebagai <strong>Mitra Driver</strong>. 
+          Ingin melakukan pemesanan ojek, pesan makanan, atau kirim barang? Beralihlah ke mode <strong>Pelanggan</strong>.
+        </p>
+        <button
+          onClick={handleSwitchRole}
+          disabled={switchingRole}
+          className="group w-full py-3 bg-secondary-container text-on-secondary-container font-bold rounded-xl shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-secondary-container/30 active:scale-95 font-label-mono text-[13px] flex items-center justify-center gap-2"
+        >
+          {switchingRole ? (
+            <span>Memproses...</span>
+          ) : (
+            <>
+              <Image 
+                src="/icons/person.png" 
+                alt="switch" 
+                width={18} 
+                height={18} 
+                className="transition-transform duration-300 group-hover:scale-110"
+              />
+              <span>Beralih ke Mode Pelanggan</span>
+            </>
+          )}
+        </button>
       </div>
 
     </div>

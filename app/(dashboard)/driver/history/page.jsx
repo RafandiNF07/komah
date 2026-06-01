@@ -202,6 +202,22 @@ export default function DriverHistoryPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* Waktu Penjemputan */}
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="w-6 h-6 flex items-center justify-center shrink-0">
+                        <Image 
+                          src="/icons/time.png" 
+                          alt="waktu" 
+                          width={22} 
+                          height={22} 
+                          className="object-contain"
+                        />
+                      </div>
+                      <p className={`font-body-md text-[14px] font-bold ${isCancelled ? 'text-text-secondary' : 'text-text-primary'}`}>
+                        Waktu Jemput: {formatDate(order.pickup_time)}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Bagian Bawah (Customer & Harga) */}

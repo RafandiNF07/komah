@@ -264,6 +264,23 @@ export default function HistoryPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Waktu Penjemputan */}
+                      <div className="flex items-start gap-3 border-t border-outline-variant/15 pt-2 mt-1">
+                        <Image 
+                          src="/icons/time.png" 
+                          alt="waktu"
+                          width={20} 
+                          height={20}
+                          className="object-contain"
+                        />
+                        <div>
+                          <p className="font-label-mono text-[9px] text-tertiary mb-0.5 font-bold uppercase tracking-wider">Waktu Penjemputan</p>
+                          <p className="font-body-sm text-[13px] font-bold text-text-primary leading-snug">
+                            {formatDate(order.pickup_time)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex flex-row md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-outline-variant/30 pt-3 md:pt-0 md:pl-4 min-w-[120px]">

@@ -16,9 +16,80 @@ export default function ProfilePage() {
   // Form state — initialized from profile data
   const [namaLengkap, setNamaLengkap] = useState('');
   const [nomorWA, setNomorWA] = useState('');
+
+  // Mode switching state
+  const [switchingRole, setSwitchingRole] = useState(false);
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [modalPlat, setModalPlat] = useState('');
+  const [modalKendaraan, setModalKendaraan] = useState('');
   
   // Referensi untuk memicu klik pada input file tersembunyi
   const fileInputRef = useRef(null);
+
+  // Switch role handler
+  const handleSwitchRole = async () => {
+    if (!user || !profile) return;
+    
+    // Cek apakah data kendaraan sudah ada (pernah daftar driver)
+    if (profile.license_plate && profile.vehicle_type) {
+      setSwitchingRole(true);
+      try {
+        const supabase = createClient();
+        const { error } = await supabase
+          .from('profiles')
+          .update({ role: 'driver' })
+          .eq('id', user.id);
+          
+        if (error) throw error;
+        
+        setFeedback({ type: 'success', message: 'Berhasil beralih ke Mode Driver!' });
+        setTimeout(() => {
+          window.location.href = '/driver';
+        }, 1000);
+      } catch (err) {
+        console.error('Error switching to driver:', err);
+        setFeedback({ type: 'error', message: 'Gagal beralih peran. Silakan coba lagi.' });
+        setSwitchingRole(false);
+      }
+    } else {
+      // Belum pernah daftar driver, buka modal pendaftaran kendaraan
+      setShowDriverModal(true);
+    }
+  };
+
+  // Register driver & switch handler
+  const handleRegisterDriver = async (e) => {
+    e.preventDefault();
+    if (!modalPlat.trim() || !modalKendaraan.trim()) {
+      alert('Semua bidang wajib diisi!');
+      return;
+    }
+    
+    setSwitchingRole(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          role: 'driver',
+          license_plate: modalPlat.trim(),
+          vehicle_type: modalKendaraan.trim()
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      setShowDriverModal(false);
+      setFeedback({ type: 'success', message: 'Pendaftaran Driver Berhasil!' });
+      setTimeout(() => {
+        window.location.href = '/driver';
+      }, 1000);
+    } catch (err) {
+      console.error('Error registering driver:', err);
+      setFeedback({ type: 'error', message: 'Gagal mendaftar driver. Silakan coba lagi.' });
+      setSwitchingRole(false);
+    }
+  };
 
   // Sync form state when profile data loads
   useEffect(() => {
@@ -313,6 +384,97 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* ================= CARD TUKAR MODE ================= */}
+      <div className="mt-6 bg-surface-container border border-outline-variant/30 rounded-2xl p-5 md:p-6 shadow-md transition-all duration-300 hover:shadow-lg">
+        <h3 className="font-headline-md text-[18px] font-bold text-text-primary mb-2 flex items-center gap-2">
+          <Image src="/icons/drivers.png" alt="mode" width={24} height={24} />
+          Beralih Peran (Mode Akun)
+        </h3>
+        <p className="font-body-sm text-[13px] text-text-secondary mb-4 leading-relaxed">
+          Anda saat ini masuk sebagai <strong>Pelanggan</strong>. 
+          Ingin beralih ke mode <strong>Driver</strong> untuk menerima pesanan dan menambah penghasilan?
+        </p>
+        <button
+          onClick={handleSwitchRole}
+          disabled={switchingRole}
+          className="group w-full py-3 bg-secondary-container text-on-secondary-container font-bold rounded-xl shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-secondary-container/30 active:scale-95 font-label-mono text-[13px] flex items-center justify-center gap-2"
+        >
+          {switchingRole ? (
+            <span>Memproses...</span>
+          ) : (
+            <>
+              <Image 
+                src="/icons/drivers.png" 
+                alt="switch" 
+                width={18} 
+                height={18} 
+                className="transition-transform duration-300 group-hover:scale-110"
+              />
+              <span>Beralih ke Mode Driver</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* ================= MODAL PENDAFTARAN DRIVER ================= */}
+      {showDriverModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[300] flex items-center justify-center p-4">
+          <div className="bg-surface-container border border-outline-variant/50 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-fade-in relative">
+            <h3 className="font-headline-md text-[20px] font-bold text-text-primary mb-2 flex items-center gap-2">
+              <Image src="/icons/drivers.png" alt="driver" width={24} height={24} />
+              Daftar Sebagai Mitra Driver
+            </h3>
+            <p className="font-body-sm text-[13px] text-text-secondary mb-5 leading-relaxed">
+              Lengkapi data kendaraan Anda di bawah ini untuk mengaktifkan akun driver dan mulai menerima pesanan.
+            </p>
+            
+            <form onSubmit={handleRegisterDriver} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Jenis Kendaraan</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: Honda Beat, Yamaha Mio"
+                  value={modalKendaraan}
+                  onChange={(e) => setModalKendaraan(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Plat Nomor Kendaraan</label>
+                <input 
+                  type="text" 
+                  placeholder="Contoh: AB 1234 CD"
+                  value={modalPlat}
+                  onChange={(e) => setModalPlat(e.target.value)}
+                  required
+                  className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setShowDriverModal(false)}
+                  disabled={switchingRole}
+                  className="flex-1 py-3 bg-close text-primary font-bold rounded-xl shadow-lg hover:-translate-y-1 transition-all font-label-mono text-[13px] disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit"
+                  disabled={switchingRole}
+                  className="flex-[2] py-3 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/30 transition-all font-label-mono text-[13px] disabled:opacity-50"
+                >
+                  {switchingRole ? 'Mendaftar...' : 'Daftar & Beralih'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

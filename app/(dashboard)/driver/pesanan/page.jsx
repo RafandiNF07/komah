@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/hooks/useProfile';
-import { formatRupiah, ORDER_TYPES } from '@/lib/constants';
+import { formatRupiah, formatDate, ORDER_TYPES } from '@/lib/constants';
 
 // --- LOGIKA PINTAR PENENTU TAMPILAN ---
 const getIconByType = (type) => {
@@ -82,6 +82,23 @@ export default function DriverOrdersPage() {
     setTakingOrderId(orderId);
     try {
       const supabase = createClient();
+
+      // Cek apakah driver saat ini sudah memiliki pesanan aktif (accepted atau on_the_way)
+      const { data: activeOrder, error: checkError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('driver_id', user.id)
+        .in('status', ['accepted', 'on_the_way'])
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (activeOrder) {
+        alert('Anda masih memiliki pesanan aktif yang belum selesai. Silakan selesaikan pesanan Anda terlebih dahulu!');
+        setTakingOrderId(null);
+        return;
+      }
+
       // RPC call to take order (anti-race condition)
       const { data: success, error } = await supabase.rpc('take_order', {
         order_uuid: orderId,
@@ -144,6 +161,23 @@ export default function DriverOrdersPage() {
                 <span className="font-label-mono text-[13px] font-bold text-text-secondary bg-surface-container-high px-2 py-1 rounded">
                   {order.distance_estimate ? `${order.distance_estimate} km` : '-'}
                 </span>
+              </div>
+
+              {/* Waktu Penjemputan */}
+              <div className="bg-tertiary/10 border border-tertiary/20 rounded-xl px-3 py-2 flex items-center gap-2.5">
+                <Image 
+                  src="/icons/time.png" 
+                  alt="waktu" 
+                  width={18} 
+                  height={18} 
+                  className="object-contain"
+                />
+                <div>
+                  <p className="font-label-mono text-[9px] text-tertiary leading-none uppercase font-bold tracking-wider">Waktu Penjemputan</p>
+                  <p className="font-body-sm text-[12px] font-bold text-text-primary mt-1">
+                    {formatDate(order.pickup_time)}
+                  </p>
+                </div>
               </div>
 
               {/* Garis Rute (Timeline) */}

@@ -5,7 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { createClient } from '@/lib/supabase/client';
-import { formatRupiah, ORDER_TYPES, buildWhatsAppUrl } from '@/lib/constants';
+import { formatRupiah, formatDate, ORDER_TYPES, buildWhatsAppUrl } from '@/lib/constants';
+import dynamic from 'next/dynamic';
+
+const OrderMap = dynamic(() => import('@/components/OrderMap'), { ssr: false });
 
 export default function DriverDashboardPage() {
   const { profile, user } = useProfile();
@@ -139,6 +142,35 @@ export default function DriverDashboardPage() {
     }
   };
 
+  const handleReleaseOrder = async () => {
+    if (!activeOrder) return;
+
+    if (!confirm('Apakah Anda yakin ingin melepaskan pesanan ini? Pesanan akan dikembalikan ke daftar agar bisa diambil oleh driver lain.')) {
+      return;
+    }
+
+    setUpdatingStatus(true);
+    try {
+      const supabase = createClient();
+      const { data: success, error } = await supabase.rpc('release_order', {
+        order_uuid: activeOrder.id,
+      });
+
+      if (error) throw error;
+
+      if (success) {
+        alert('Pesanan berhasil dilepaskan.');
+      } else {
+        alert('Gagal melepaskan pesanan. Pesanan mungkin sudah diproses atau diselesaikan.');
+      }
+    } catch (err) {
+      console.error('Error releasing order:', err);
+      alert(err.message || 'Gagal melepaskan pesanan.');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   // Format tanggal: "Sabtu, 30 Mei 2026"
   const formattedDate = currentTime.toLocaleDateString('id-ID', {
     weekday: 'long',
@@ -261,9 +293,12 @@ export default function DriverDashboardPage() {
             
             <div className="absolute top-0 right-0 w-32 h-32 bg-tertiary/5 rounded-bl-full -z-0"></div>
 
-            <div className="relative z-10 flex flex-col lg:flex-row gap-6 lg:items-center justify-between">
+            <div className="relative z-10 flex flex-col lg:flex-row gap-6 lg:items-stretch justify-between">
               
-              <div className="flex-1 space-y-5">
+              <div className="flex-1 flex flex-col md:flex-row gap-6">
+                
+                {/* Kolom Kiri: Detil Pesanan (Teks) */}
+                <div className="flex-1 space-y-5">
                 
                 {/* --- HEADER CARD --- */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-outline-variant/30">
@@ -301,6 +336,23 @@ export default function DriverDashboardPage() {
                     </div>
                   </div>
 
+                </div>
+
+                {/* Waktu Penjemputan Aktif */}
+                <div className="bg-tertiary/10 border border-tertiary/20 rounded-xl px-4 py-3 flex items-center gap-3 mt-1 mb-3">
+                  <Image 
+                    src="/icons/time.png" 
+                    alt="waktu" 
+                    width={20} 
+                    height={20} 
+                    className="object-contain animate-pulse"
+                  />
+                  <div>
+                    <p className="font-label-mono text-[10px] text-tertiary leading-none uppercase font-bold tracking-wider">Waktu Penjemputan</p>
+                    <p className="font-body-md text-[14px] font-bold text-text-primary mt-1">
+                      {formatDate(activeOrder.pickup_time)}
+                    </p>
+                  </div>
                 </div>
 
                 {/* --- TIMELINE RUTE --- */}
@@ -367,6 +419,16 @@ export default function DriverDashboardPage() {
                   </div>
                 )}
 
+                </div>
+
+                {/* Kolom Kanan: Peta Rute Aktif */}
+                <div className="w-full md:w-[45%] h-[260px] md:h-auto min-h-[250px] shrink-0">
+                  <OrderMap 
+                    pickup={{ lat: Number(activeOrder.pickup_lat), lng: Number(activeOrder.pickup_lng), address: activeOrder.pickup_location }}
+                    destination={activeOrder.destination_location ? { lat: Number(activeOrder.destination_lat), lng: Number(activeOrder.destination_lng), address: activeOrder.destination_location } : null}
+                  />
+                </div>
+
               </div>
 
               {/* --- TOMBOL AKSI --- */}
@@ -385,13 +447,22 @@ export default function DriverDashboardPage() {
                 
                 {/* Tombol Update Status (accepted -> on_the_way -> completed) */}
                 {activeOrder.status === 'accepted' ? (
-                  <button 
-                    disabled={updatingStatus}
-                    onClick={() => handleUpdateStatus(activeOrder.id, 'on_the_way')}
-                    className="flex-[2] lg:flex-none flex items-center justify-center gap-2 py-3 bg-tertiary text-on-tertiary rounded-xl font-label-mono text-[13px] font-bold shadow-lg hover:-translate-y-1 hover:shadow-tertiary/40 active:scale-95 transition-all duration-300"
-                  >
-                    Mulai Perjalanan
-                  </button>
+                  <>
+                    <button 
+                      disabled={updatingStatus}
+                      onClick={() => handleUpdateStatus(activeOrder.id, 'on_the_way')}
+                      className="flex-[2] lg:flex-none flex items-center justify-center gap-2 py-3 bg-tertiary text-on-tertiary rounded-xl font-label-mono text-[13px] font-bold shadow-lg hover:-translate-y-1 hover:shadow-tertiary/40 active:scale-95 transition-all duration-300"
+                    >
+                      Mulai Perjalanan
+                    </button>
+                    <button 
+                      disabled={updatingStatus}
+                      onClick={handleReleaseOrder}
+                      className="flex-1 lg:flex-none flex items-center justify-center gap-2 py-3 bg-close text-primary rounded-xl font-label-mono text-[13px] font-bold shadow-md hover:-translate-y-1 active:scale-95 transition-all duration-300 border border-outline-variant/30"
+                    >
+                      Lepas Pesanan
+                    </button>
+                  </>
                 ) : (
                   <button 
                     disabled={updatingStatus}
