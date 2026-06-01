@@ -95,8 +95,7 @@ export default function HelperOrderPage() {
 
       if (insertError) throw insertError;
 
-      alert('Helper sedang dicarikan!');
-      router.push('/user/history');
+      router.push('/user/history?success=true');
     } catch (err) {
       console.error('Insert helper order error:', err);
       setError(err.message || 'Gagal membuat pesanan. Silakan coba lagi.');

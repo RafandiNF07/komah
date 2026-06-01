@@ -13,6 +13,28 @@ const OrderMap = dynamic(() => import('@/components/OrderMap'), { ssr: false });
 export default function DriverDashboardPage() {
   const { profile, user } = useProfile();
   
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false });
+  const [feedback, setFeedback] = useState(null);
+
+  // Sembunyikan feedback secara otomatis setelah 3 detik
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
+
+  // Deteksi jika diarahkan setelah mengambil pesanan (URL success query)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true') {
+        setFeedback({ type: 'success', message: 'Pesanan berhasil diambil! Silakan hubungi pemesan.' });
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
+  
   // --- STATE UNTUK WAKTU REAL-TIME ---
   const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -133,22 +155,24 @@ export default function DriverDashboardPage() {
         .eq('id', orderId);
 
       if (error) throw error;
-      alert(newStatus === 'completed' ? 'Pesanan telah selesai! Terima kasih.' : 'Status pesanan diperbarui!');
+      setFeedback({ 
+        type: 'success', 
+        message: newStatus === 'completed' ? 'Pesanan telah selesai! Terima kasih.' : 'Status pesanan diperbarui!' 
+      });
     } catch (err) {
       console.error('Error updating order status:', err);
-      alert(err.message || 'Gagal mengubah status pesanan.');
+      setFeedback({ type: 'error', message: err.message || 'Gagal mengubah status pesanan.' });
     } finally {
       setUpdatingStatus(false);
     }
   };
 
-  const handleReleaseOrder = async () => {
+  const handleReleaseOrder = () => {
     if (!activeOrder) return;
+    setConfirmModal({ isOpen: true });
+  };
 
-    if (!confirm('Apakah Anda yakin ingin melepaskan pesanan ini? Pesanan akan dikembalikan ke daftar agar bisa diambil oleh driver lain.')) {
-      return;
-    }
-
+  const executeReleaseOrder = async () => {
     setUpdatingStatus(true);
     try {
       const supabase = createClient();
@@ -159,15 +183,16 @@ export default function DriverDashboardPage() {
       if (error) throw error;
 
       if (success) {
-        alert('Pesanan berhasil dilepaskan.');
+        setFeedback({ type: 'success', message: 'Pesanan berhasil dilepaskan.' });
       } else {
-        alert('Gagal melepaskan pesanan. Pesanan mungkin sudah diproses atau diselesaikan.');
+        setFeedback({ type: 'error', message: 'Gagal melepaskan pesanan. Pesanan mungkin sudah diproses atau diselesaikan.' });
       }
     } catch (err) {
       console.error('Error releasing order:', err);
-      alert(err.message || 'Gagal melepaskan pesanan.');
+      setFeedback({ type: 'error', message: err.message || 'Gagal melepaskan pesanan.' });
     } finally {
       setUpdatingStatus(false);
+      setConfirmModal({ isOpen: false });
     }
   };
 
@@ -507,6 +532,42 @@ export default function DriverDashboardPage() {
           </div>
         )}
       </div>
+      {/* Custom Confirm Release Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[250] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface-container border border-outline-variant/30 p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-2">Lepas Pesanan?</h3>
+            <p className="font-body-sm text-[13px] text-text-secondary leading-relaxed">
+              Apakah Anda yakin ingin melepaskan pesanan ini? Pesanan akan dikembalikan ke daftar agar bisa diambil oleh pengemudi lain.
+            </p>
+            <div className="flex gap-3 mt-6 justify-end">
+              <button 
+                onClick={() => setConfirmModal({ isOpen: false })}
+                className="px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 text-text-primary rounded-xl font-label-mono text-[12px] font-bold transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={executeReleaseOrder}
+                className="px-4 py-2 bg-cancel hover:bg-cancel/95 text-on-tertiary rounded-xl font-label-mono text-[12px] font-bold shadow-lg shadow-cancel/10 transition-colors"
+              >
+                Ya, Lepaskan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Feedback Toast */}
+      {feedback && (
+        <div className={`fixed top-4 right-4 z-[300] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+          feedback.type === 'success' 
+            ? 'bg-success/90 text-on-tertiary' 
+            : 'bg-cancel/90 text-on-tertiary'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
 
     </div>
   );

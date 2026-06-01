@@ -62,7 +62,7 @@ export default function ProfilePage() {
   const handleRegisterDriver = async (e) => {
     e.preventDefault();
     if (!modalPlat.trim() || !modalKendaraan.trim()) {
-      alert('Semua bidang wajib diisi!');
+      setFeedback({ type: 'error', message: 'Semua bidang wajib diisi!' });
       return;
     }
     
@@ -273,7 +273,7 @@ export default function ProfilePage() {
       
       {/* Feedback Toast */}
       {feedback && (
-        <div className={`fixed top-4 right-4 z-[200] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+        <div className={`fixed top-4 right-4 z-[500] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
           feedback.type === 'success' 
             ? 'bg-success/90 text-on-tertiary' 
             : 'bg-cancel/90 text-on-tertiary'

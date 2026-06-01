@@ -113,8 +113,7 @@ export default function DeliveryOrderPage() {
 
       if (insertError) throw insertError;
 
-      alert('Driver Delivery sedang dicarikan!');
-      router.push('/user/history');
+      router.push('/user/history?success=true');
     } catch (err) {
       console.error('Insert delivery order error:', err);
       setError(err.message || 'Gagal membuat pesanan. Silakan coba lagi.');

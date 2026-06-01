@@ -30,6 +30,15 @@ export default function DriverOrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [takingOrderId, setTakingOrderId] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+
+  // Sembunyikan feedback secara otomatis setelah 3 detik
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   const fetchAvailableOrders = useCallback(async () => {
     try {
@@ -50,14 +59,12 @@ export default function DriverOrdersPage() {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchAvailableOrders();
-    }, 0);
+    fetchAvailableOrders();
 
-    // Realtime subscription for searching orders
+    // Setup realtime subscription
     const supabase = createClient();
     const subscription = supabase
-      .channel('searching_orders_changes')
+      .channel('available_orders_changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
@@ -67,6 +74,10 @@ export default function DriverOrdersPage() {
       )
       .subscribe();
 
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
     return () => {
       clearTimeout(timer);
       supabase.removeChannel(subscription);
@@ -75,7 +86,7 @@ export default function DriverOrdersPage() {
 
   const handleTakeOrder = async (orderId) => {
     if (!user) {
-      alert('Silakan login terlebih dahulu.');
+      setFeedback({ type: 'error', message: 'Silakan login terlebih dahulu.' });
       return;
     }
 
@@ -94,7 +105,10 @@ export default function DriverOrdersPage() {
       if (checkError) throw checkError;
 
       if (activeOrder) {
-        alert('Anda masih memiliki pesanan aktif yang belum selesai. Silakan selesaikan pesanan Anda terlebih dahulu!');
+        setFeedback({ 
+          type: 'error', 
+          message: 'Anda masih memiliki pesanan aktif yang belum selesai. Silakan selesaikan pesanan Anda terlebih dahulu!' 
+        });
         setTakingOrderId(null);
         return;
       }
@@ -107,15 +121,17 @@ export default function DriverOrdersPage() {
       if (error) throw error;
 
       if (success) {
-        alert('Pesanan berhasil diambil! Silakan hubungi pemesan.');
-        router.push('/driver');
+        router.push('/driver?success=true');
       } else {
-        alert('Gagal mengambil pesanan! Pesanan ini mungkin sudah diambil oleh driver lain.');
+        setFeedback({ 
+          type: 'error', 
+          message: 'Gagal mengambil pesanan! Pesanan ini mungkin sudah diambil oleh driver lain.' 
+        });
         fetchAvailableOrders();
       }
     } catch (err) {
       console.error('Error taking order:', err);
-      alert(err.message || 'Gagal mengambil pesanan.');
+      setFeedback({ type: 'error', message: err.message || 'Gagal mengambil pesanan.' });
     } finally {
       setTakingOrderId(null);
     }
@@ -309,6 +325,15 @@ export default function DriverOrdersPage() {
           </div>
         )}
       </div>
+
+      {/* Feedback Toast */}
+      {feedback && (
+        <div className={`fixed top-4 right-4 z-[500] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+          feedback.type === 'success' ? 'bg-success/90 text-on-tertiary' : 'bg-cancel/90 text-on-tertiary'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
 
     </div>
   );

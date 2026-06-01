@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -110,6 +110,15 @@ export default function MapPicker({
   const [address, setAddress] = useState('');
   const [loadingAddress, setLoadingAddress] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
+
+  // Auto-hide feedback after 3 seconds
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   // Dual mode states
   const [pickup, setPickup] = useState(initialPickup);
@@ -123,6 +132,7 @@ export default function MapPicker({
   const [destinationQuery, setDestinationQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [activeQueryType, setActiveQueryType] = useState(null); // 'pickup' atau 'destination'
+  const searchTimeoutRef = useRef(null);
 
   // Sync search queries with geocoded addresses
   useEffect(() => {
@@ -143,7 +153,7 @@ export default function MapPicker({
     }
   }, [address]);
 
-  const handleSearchQuery = async (query, type) => {
+  const handleSearchQuery = (query, type) => {
     setActiveQueryType(type);
     if (type === 'pickup') {
       setPickupQuery(query);
@@ -156,21 +166,27 @@ export default function MapPicker({
       return;
     }
 
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=id&viewbox=101.1,0.7,101.6,0.2&bounded=1&addressdetails=1`,
-        { headers: { 'Accept-Language': 'id' } }
-      );
-      const data = await response.json();
-      const results = data.map((item) => ({
-        label: item.display_name,
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-      }));
-      setSuggestions(results);
-    } catch (err) {
-      console.error('Error searching address:', err);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
+
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=id&viewbox=101.1,0.7,101.6,0.2&bounded=1&addressdetails=1`,
+          { headers: { 'Accept-Language': 'id' } }
+        );
+        const data = await response.json();
+        const results = data.map((item) => ({
+          label: item.display_name,
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+        }));
+        setSuggestions(results);
+      } catch (err) {
+        console.error('Error searching address:', err);
+      }
+    }, 300);
   };
 
   const handleSelectSuggestion = (suggestion, type) => {
@@ -298,7 +314,7 @@ export default function MapPicker({
 
   const handleGetCurrentLocation = useCallback((targetType = activeSelect) => {
     if (!navigator.geolocation) {
-      alert('Geolocation tidak didukung di browser ini.');
+      setFeedback({ type: 'error', message: 'Geolocation tidak didukung di browser ini.' });
       return;
     }
 
@@ -329,7 +345,7 @@ export default function MapPicker({
       },
       (err) => {
         console.error('Geolocation error:', err);
-        alert('Gagal mendapatkan lokasi. Pastikan izin lokasi sudah diberikan.');
+        setFeedback({ type: 'error', message: 'Gagal mendapatkan lokasi. Pastikan izin lokasi sudah diberikan.' });
         setGettingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -540,6 +556,15 @@ export default function MapPicker({
             )}
           </MapContainer>
         </div>
+
+        {/* Feedback Toast */}
+        {feedback && (
+          <div className={`fixed top-4 right-4 z-[500] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+            feedback.type === 'success' ? 'bg-success/90 text-on-tertiary' : 'bg-cancel/90 text-on-tertiary'
+          }`}>
+            {feedback.message}
+          </div>
+        )}
       </div>
     );
   }
@@ -648,6 +673,15 @@ export default function MapPicker({
           )}
         </MapContainer>
       </div>
+
+      {/* Feedback Toast */}
+      {feedback && (
+        <div className={`fixed top-4 right-4 z-[500] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+          feedback.type === 'success' ? 'bg-success/90 text-on-tertiary' : 'bg-cancel/90 text-on-tertiary'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
     </div>
   );
 }
