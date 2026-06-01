@@ -27,6 +27,14 @@ export default function DriverEarningsPage() {
   const [orders, setOrders] = useState([]);
   const [completionStats, setCompletionStats] = useState({ completed: 0, total: 0 });
   const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState(null);
+
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   const fetchEarningsData = useCallback(async () => {
     if (!userId) return;
@@ -100,7 +108,7 @@ export default function DriverEarningsPage() {
 
   const handleExportPDF = () => {
     if (orders.length === 0) {
-      alert('Tidak ada data transaksi untuk diexport pada periode ini.');
+      setFeedback({ type: 'error', message: 'Tidak ada data transaksi untuk diexport pada periode ini.' });
       return;
     }
     generateDriverReport(orders, timeFilter);
@@ -319,6 +327,15 @@ export default function DriverEarningsPage() {
           className="object-contain"
         />
       </button>
+
+      {/* Feedback Toast */}
+      {feedback && (
+        <div className={`fixed top-4 right-4 z-[500] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+          feedback.type === 'success' ? 'bg-success/90 text-on-tertiary' : 'bg-cancel/90 text-on-tertiary'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
 
     </div>
   );

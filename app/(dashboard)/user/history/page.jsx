@@ -14,6 +14,28 @@ export default function HistoryPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, orderId: null });
+  const [feedback, setFeedback] = useState(null);
+
+  // Deteksi jika diarahkan setelah membuat pesanan baru (URL success query)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success') === 'true') {
+        setFeedback({ type: 'success', message: 'Driver sedang dicarikan! Mohon tunggu.' });
+        // Bersihkan query string agar tidak memicu kembali saat di-refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
+
+  // Sembunyikan feedback secara otomatis setelah 3 detik
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   const fetchOrderHistory = useCallback(async () => {
     if (!user) return;
@@ -60,9 +82,11 @@ export default function HistoryPage() {
     };
   }, [user, fetchOrderHistory]);
 
-  const handleCancelOrder = async (orderId) => {
-    if (!confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')) return;
-    
+  const handleCancelOrder = (orderId) => {
+    setConfirmModal({ isOpen: true, orderId });
+  };
+
+  const executeCancelOrder = async (orderId) => {
     setCancellingId(orderId);
     try {
       const supabase = createClient();
@@ -73,13 +97,14 @@ export default function HistoryPage() {
         .eq('status', 'searching'); // double check security
 
       if (error) throw error;
-      alert('Pesanan berhasil dibatalkan.');
+      setFeedback({ type: 'success', message: 'Pesanan berhasil dibatalkan.' });
       fetchOrderHistory();
     } catch (err) {
       console.error('Error cancelling order:', err);
-      alert(err.message || 'Gagal membatalkan pesanan.');
+      setFeedback({ type: 'error', message: err.message || 'Gagal membatalkan pesanan.' });
     } finally {
       setCancellingId(null);
+      setConfirmModal({ isOpen: false, orderId: null });
     }
   };
 
@@ -390,6 +415,43 @@ export default function HistoryPage() {
           </div>
         )} 
       </div>
+
+      {/* Custom Confirm Cancel Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[250] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-surface-container border border-outline-variant/30 p-6 rounded-2xl max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-2">Batalkan Pesanan?</h3>
+            <p className="font-body-sm text-[13px] text-text-secondary leading-relaxed">
+              Apakah Anda yakin ingin membatalkan pesanan ini? Aksi ini tidak dapat dibatalkan.
+            </p>
+            <div className="flex gap-3 mt-6 justify-end">
+              <button 
+                onClick={() => setConfirmModal({ isOpen: false, orderId: null })}
+                className="px-4 py-2 bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant/30 text-text-primary rounded-xl font-label-mono text-[12px] font-bold transition-colors"
+              >
+                Kembali
+              </button>
+              <button 
+                onClick={() => executeCancelOrder(confirmModal.orderId)}
+                className="px-4 py-2 bg-cancel hover:bg-cancel/95 text-on-tertiary rounded-xl font-label-mono text-[12px] font-bold shadow-lg shadow-cancel/10 transition-colors"
+              >
+                Ya, Batalkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Feedback Toast */}
+      {feedback && (
+        <div className={`fixed top-4 right-4 z-[300] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+          feedback.type === 'success' 
+            ? 'bg-success/90 text-on-tertiary' 
+            : 'bg-cancel/90 text-on-tertiary'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
 
     </div>
   );

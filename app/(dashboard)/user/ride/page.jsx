@@ -103,8 +103,7 @@ export default function RideOrderPage() {
 
       if (insertError) throw insertError;
 
-      alert('Driver Antar/Jemput sedang dicarikan!');
-      router.push('/user/history');
+      router.push('/user/history?success=true');
     } catch (err) {
       console.error('Insert order error:', err);
       setError(err.message || 'Gagal membuat pesanan. Silakan coba lagi.');
