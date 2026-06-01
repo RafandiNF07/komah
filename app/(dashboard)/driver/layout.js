@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useProfile } from '@/lib/hooks/useProfile';
+import { createClient } from '@/lib/supabase/client';
 
 export default function DriverDashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { profile, user, loading, refetch } = useProfile();
 
   // State untuk mengontrol Sidebar di Mobile
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -18,28 +21,47 @@ export default function DriverDashboardLayout({ children }) {
   // State untuk mengontrol Pop-up Logout
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // State untuk loading logout
+  const [loggingOut, setLoggingOut] = useState(false);
+
   // Fungsi untuk mendeteksi halaman yang sedang aktif
   const isActive = (path) => pathname === path;
 
   // Fungsi eksekusi Logout
-  const handleConfirmLogout = () => {
-    setShowLogoutModal(false);
-    router.push('/'); // Mengarahkan ke Landing Page
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      setShowLogoutModal(false);
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Logout error:', err);
+      setLoggingOut(false);
+    }
   };
 
   // Pasang pendengar (Listener) untuk update foto profil otomatis
   useEffect(() => {
     const loadProfilePic = () => {
-      // Catatan: Gunakan key 'driverProfilePic' atau 'userProfilePic' sesuai dengan 
-      // nama yang kamu simpan di halaman Profile Driver nantinya.
-      const savedPic = localStorage.getItem('userProfilePic');
+      // Menggunakan key 'driverProfilePic' agar konsisten dengan profile page
+      const savedPic = localStorage.getItem('driverProfilePic');
       if (savedPic) setNavProfilePic(savedPic);
     };
 
     loadProfilePic();
-    window.addEventListener('profilePictureUpdated', loadProfilePic);
-    return () => window.removeEventListener('profilePictureUpdated', loadProfilePic);
-  }, []);
+    
+    const handleProfilePicUpdate = () => {
+      loadProfilePic();
+      refetch();
+    };
+
+    window.addEventListener('driverProfilePictureUpdated', handleProfilePicUpdate);
+    return () => window.removeEventListener('driverProfilePictureUpdated', handleProfilePicUpdate);
+  }, [refetch]);
+
+  const avatarSrc = profile?.avatar_url || navProfilePic;
+
 
   return (
     <div className="flex h-[100dvh] w-full bg-background text-text-primary font-body-md antialiased overflow-hidden relative">
@@ -96,9 +118,11 @@ export default function DriverDashboardLayout({ children }) {
         {/* Profil Singkat Driver */}
         <div className="flex flex-col items-center mb-8 pb-4 border-b border-outline-variant w-full mt-10 md:mt-0">
           <div className="w-24 h-24 rounded-full mb-3 overflow-hidden ring-2 ring-tertiary relative bg-surface-container-high flex items-center justify-center">
-            {navProfilePic ? (
+            {loading ? (
+              <div className="w-full h-full bg-surface-container-high animate-pulse rounded-full"></div>
+            ) : avatarSrc ? (
               <img
-                src={navProfilePic}
+                src={avatarSrc}
                 alt="Foto Profil"
                 className="object-cover w-full h-full" 
               />
@@ -111,7 +135,11 @@ export default function DriverDashboardLayout({ children }) {
               />
             )}
           </div>
-          <h3 className="font-headline-sm text-[20px] text-text-primary">Aqsya Aurora</h3>
+          {loading ? (
+            <div className="h-6 w-32 bg-surface-container-high animate-pulse rounded mb-1"></div>
+          ) : (
+            <h3 className="font-headline-sm text-[20px] text-text-primary">{profile?.full_name || 'Driver'}</h3>
+          )}
           <span className="font-label-mono text-[14px] text-text-secondary mt-1">Driver KOMAH</span>
         </div>
 
@@ -295,7 +323,8 @@ export default function DriverDashboardLayout({ children }) {
               {/* Tombol Batal */}
               <button 
                 onClick={() => setShowLogoutModal(false)}
-                className="flex-1 py-3 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary text-[14px] font-bold rounded-xl shadow-lg shadow-tertiary/20 transform hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] active:scale-[0.98] transition-all duration-300"
+                disabled={loggingOut}
+                className="flex-1 py-3 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary text-[14px] font-bold rounded-xl shadow-lg shadow-tertiary/20 transform hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] active:scale-[0.98] transition-all duration-300 disabled:opacity-50"
               >
                 Batal
               </button>
@@ -303,9 +332,10 @@ export default function DriverDashboardLayout({ children }) {
               {/* Tombol Keluar (Animasi Timbul & Glowing Tertiary) */}
               <button 
                 onClick={handleConfirmLogout}
-                className="flex-1 py-3 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary text-[14px] font-bold rounded-xl shadow-lg shadow-tertiary/20 transform hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] active:scale-[0.98] transition-all duration-300"
+                disabled={loggingOut}
+                className="flex-1 py-3 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary text-[14px] font-bold rounded-xl shadow-lg shadow-tertiary/20 transform hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] active:scale-[0.98] transition-all duration-300 disabled:opacity-50"
               >
-                Ya, Keluar
+                {loggingOut ? 'Keluar...' : 'Ya, Keluar'}
               </button>
             </div>
           </div>

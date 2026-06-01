@@ -1,72 +1,103 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // <-- TAMBAHKAN IMPORT INI
-
-// --- DATA DUMMY ---
-const dummyOrders = [
-  {
-    id: 'ORD-001',
-    type: 'ride',
-    title: 'Antar/Jemput',
-    date: '22 Mei 2026 • 14:30 WIB',
-    pickup: 'Fakultas Sains dan Teknologi',
-    destination: 'Gedung Rektorat UIN',
-    price: 'Rp 5.000',
-    status: 'aktif',
-    statusText: 'Driver Menuju Lokasi'
-  },
-  {
-    id: 'ORD-002',
-    type: 'food',
-    title: 'KOMAH Food',
-    date: '21 Mei 2026 • 12:15 WIB',
-    pickup: 'Kantin Teknik (Mpok Siti)',
-    destination: 'Lobby Fakultas Ekonomi',
-    price: 'Rp 18.000',
-    status: 'selesai',
-    statusText: 'Selesai'
-  },
-  {
-    id: 'ORD-003',
-    type: 'delivery',
-    title: 'Delivery Barang',
-    date: '20 Mei 2026 • 09:00 WIB',
-    pickup: 'Perpustakaan Universitas',
-    destination: 'Kosan Mawar Baru',
-    price: 'Rp 8.000',
-    status: 'selesai',
-    statusText: 'Selesai'
-  },
-  {
-    id: 'ORD-004',
-    type: 'helper',
-    title: 'Jasa Helper',
-    date: '18 Mei 2026 • 16:45 WIB',
-    pickup: 'Gedung PKM Lantai 2',
-    destination: '-',
-    price: 'Rp 15.000',
-    status: 'batal',
-    statusText: 'Dibatalkan'
-  }
-];
+import Image from 'next/image';
+import { useProfile } from '@/lib/hooks/useProfile';
+import { createClient } from '@/lib/supabase/client';
+import { generateOrderReceipt } from '@/lib/pdf';
+import { formatRupiah, formatDate, ORDER_TYPES, ORDER_STATUS, buildWhatsAppUrl } from '@/lib/constants';
 
 export default function HistoryPage() {
+  const { user } = useProfile();
   const [activeTab, setActiveTab] = useState('semua');
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
 
-  const filteredOrders = dummyOrders.filter(order => {
+  const fetchOrderHistory = useCallback(async () => {
+    if (!user) return;
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, driver:profiles!driver_id(*)')
+        .eq('customer_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (err) {
+      console.error('Error fetching order history:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return; // Guard against null user on mount
+
+    const timer = setTimeout(() => {
+      fetchOrderHistory();
+    }, 0);
+
+    // Setup realtime subscription
+    const supabase = createClient();
+    const subscription = supabase
+      .channel('user_history_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `customer_id=eq.${user.id}` },
+        () => {
+          fetchOrderHistory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearTimeout(timer);
+      supabase.removeChannel(subscription);
+    };
+  }, [user, fetchOrderHistory]);
+
+  const handleCancelOrder = async (orderId) => {
+    if (!confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')) return;
+    
+    setCancellingId(orderId);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId)
+        .eq('status', 'searching'); // double check security
+
+      if (error) throw error;
+      alert('Pesanan berhasil dibatalkan.');
+      fetchOrderHistory();
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      alert(err.message || 'Gagal membatalkan pesanan.');
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  // Filter orders based on active tab
+  const filteredOrders = orders.filter(order => {
     if (activeTab === 'semua') return true;
-    if (activeTab === 'aktif') return order.status === 'aktif';
-    if (activeTab === 'selesai') return order.status === 'selesai' || order.status === 'batal';
+    if (activeTab === 'aktif') {
+      return ['searching', 'accepted', 'on_the_way'].includes(order.status);
+    }
+    if (activeTab === 'selesai') {
+      return ['completed', 'cancelled'].includes(order.status);
+    }
     return true;
   });
 
-  // --- FUNGSI PINTAR PENENTU GAMBAR IKON ---
-  // Sekarang mengembalikan alamat file gambar (imageSrc)
   const getServiceStyle = (type) => {
     switch (type) {
-      case 'ride':
+      case 'bike':
         return { imageSrc: '/icons/bike.png', bg: 'bg-tertiary/20' };
       case 'food':
         return { imageSrc: '/icons/fast_food.png', bg: 'bg-orange/20' };
@@ -75,7 +106,6 @@ export default function HistoryPage() {
       case 'helper':
         return { imageSrc: '/icons/heart.png', bg: 'bg-success/20' };
       default:
-        // Gambar default jika tipenya tidak diketahui (pastikan punya default gambar atau pakai icon biasa)
         return { imageSrc: '/icons/motor.png', bg: 'bg-surface-container-high' }; 
     }
   };
@@ -127,146 +157,207 @@ export default function HistoryPage() {
       </div>
 
       <div className="space-y-4">
-        {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => {
-            const style = getServiceStyle(order.type);
+        {!loading ? (
+          filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => {
+              const style = getServiceStyle(order.type);
+              const isActive = ['searching', 'accepted', 'on_the_way'].includes(order.status);
 
-            return (
-              <div key={order.id} className="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-4 md:p-5 hover:border-tertiary/40 transition-colors shadow-sm">
-                
-                <div className="flex justify-between items-start mb-4 border-b border-outline-variant/20 pb-3">
-                  <div className="flex items-center gap-3">
-                    
-                    {/* --- BAGIAN YANG DIUBAH MENJADI GAMBAR --- */}
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-outline-variant/20 ${style.bg}`}>
-                      <Image 
-                        src={style.imageSrc} 
-                        alt={order.type}
-                        width={22} 
-                        height={22}
-                        className="object-contain"
-                      />
-                    </div>
-                    {/* ------------------------------------------ */}
-                    
-                    <div>
-                      <h3 className="font-headline-sm text-[16px] font-bold text-text-primary">
-                        {order.title}
-                      </h3>
-                      <p className="font-body-sm text-[12px] text-text-secondary">
-                        {order.date}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className={`px-3 py-1 rounded-md font-label-mono text-[11px] font-bold flex items-center gap-1.5 ${
-                    order.status === 'aktif' ? 'bg-tertiary/20 text-tertiary animate-pulse' :
-                    order.status === 'selesai' ? 'bg-success/20 text-success' :
-                    'bg-close/20 text-cancel'
-                  }`}>
-
-                    {order.status === 'aktif' && 
-                      <Image 
-                        src="/icons/bike.png" 
-                        alt="bike"
-                        width={20} 
-                        height={20}
-                        className="absolut left-4"
-                      />
-                    }
-
-                    {order.status === 'selesai' && 
-                      <Image 
-                        src="/icons/check.png" 
-                        alt="check"
-                        width={20} 
-                        height={20}
-                        className="absolut left-4"
-                      />
-                    }
-
-                    {order.status === 'batal' && 
-                      <Image 
-                        src="/icons/cancel.png" 
-                        alt="cancel"
-                        width={20} 
-                        height={20}
-                        className="absolut left-4"
-                      />
-                    }
-
-                    {order.statusText}
-                  </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="space-y-3 flex-1">
-                    <div className="flex items-start gap-3">
-                      <Image 
-                        src="/icons/jemput1.png" 
-                        alt="jemput"
-                        width={20} 
-                        height={20}
-                        className="absolut left-4"
-                      />
+              return (
+                <div key={order.id} className="bg-surface-container-low border border-outline-variant/30 rounded-2xl p-4 md:p-5 hover:border-tertiary/40 transition-colors shadow-sm">
+                  
+                  <div className="flex justify-between items-start mb-4 border-b border-outline-variant/20 pb-3">
+                    <div className="flex items-center gap-3">
+                      
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center border border-outline-variant/20 ${style.bg}`}>
+                        <Image 
+                          src={style.imageSrc} 
+                          alt={order.type}
+                          width={22} 
+                          height={22}
+                          className="object-contain"
+                        />
+                      </div>
+                      
                       <div>
-                        <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">Titik Awal</p>
-                        <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.pickup}</p>
+                        <h3 className="font-headline-sm text-[16px] font-bold text-text-primary">
+                          {ORDER_TYPES[order.type]?.label || order.type}
+                        </h3>
+                        <p className="font-body-sm text-[12px] text-text-secondary">
+                          {formatDate(order.created_at)}
+                        </p>
                       </div>
                     </div>
-                    
-                    {order.destination !== '-' && (
-                      <div className="flex items-start gap-3">
+
+                    <div className={`px-3 py-1 rounded-md font-label-mono text-[11px] font-bold flex items-center gap-1.5 ${
+                      isActive ? 'bg-tertiary/20 text-tertiary animate-pulse' :
+                      order.status === 'completed' ? 'bg-success/20 text-success' :
+                      'bg-close/20 text-cancel'
+                    }`}>
+
+                      {isActive && 
                         <Image 
-                          src="/icons/tujuan.png" 
-                          alt="tujuan"
+                          src="/icons/bike.png" 
+                          alt="bike"
                           width={20} 
                           height={20}
-                          className="absolut left-4"
+                          className="object-contain"
                         />
-                        <div>
-                          <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">Titik Tujuan</p>
-                          <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.destination}</p>
-                        </div>
-                      </div>
-                    )}
+                      }
+
+                      {order.status === 'completed' && 
+                        <Image 
+                          src="/icons/check.png" 
+                          alt="check"
+                          width={20} 
+                          height={20}
+                          className="object-contain"
+                        />
+                      }
+
+                      {order.status === 'cancelled' && 
+                        <Image 
+                          src="/icons/cancel.png" 
+                          alt="cancel"
+                          width={20} 
+                          height={20}
+                          className="object-contain"
+                        />
+                      }
+
+                      {ORDER_STATUS[order.status]?.label || order.status}
+                    </div>
                   </div>
 
-                  <div className="flex flex-row md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-outline-variant/30 pt-3 md:pt-0 md:pl-4 min-w-[120px]">
-                    <p className="font-label-mono text-[11px] text-text-secondary">Total Biaya</p>
-                    <p className="font-headline-sm text-[18px] font-bold text-text-primary">{order.price}</p>
-                    <p className="font-label-mono text-[10px] text-outline mt-1 hidden md:block">{order.id}</p>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-start gap-3">
+                        <Image 
+                          src="/icons/jemput1.png" 
+                          alt="jemput"
+                          width={20} 
+                          height={20}
+                          className="object-contain"
+                        />
+                        <div>
+                          <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">
+                            {order.type === 'delivery' ? 'Lokasi Pengambilan' : 'Titik Awal'}
+                          </p>
+                          <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.pickup_location}</p>
+                        </div>
+                      </div>
+                      
+                      {order.destination_location && (
+                        <div className="flex items-start gap-3">
+                          <Image 
+                            src="/icons/tujuan.png" 
+                            alt="tujuan"
+                            width={20} 
+                            height={20}
+                            className="object-contain"
+                          />
+                          <div>
+                            <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">
+                              {order.type === 'food' ? 'Lokasi Pengantaran' : 'Titik Tujuan'}
+                            </p>
+                            <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.destination_location}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-row md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-outline-variant/30 pt-3 md:pt-0 md:pl-4 min-w-[120px]">
+                      <p className="font-label-mono text-[11px] text-text-secondary">Total Biaya</p>
+                      <p className="font-headline-sm text-[18px] font-bold text-text-primary">
+                        {formatRupiah(order.total_price)}
+                      </p>
+                      <p className="font-label-mono text-[10px] text-outline mt-1 hidden md:block uppercase">{order.order_number}</p>
+                    </div>
                   </div>
+                  
+                  {/* Action Buttons for Active Orders */}
+                  {isActive && (
+                    <div className="mt-4 pt-3 border-t border-outline-variant/20 flex gap-3">
+                      {order.driver ? (
+                        <a 
+                          href={buildWhatsAppUrl(order.service_details?.whatsapp_number || order.driver.phone_number, order.order_number)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-2 bg-surface-container-high text-text-primary font-label-mono text-[13px] rounded-lg hover:bg-tertiary hover:text-on-tertiary transition-colors text-center font-bold flex items-center justify-center gap-1.5"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">forum</span>
+                          Hubungi Driver ({order.driver.full_name})
+                        </a>
+                      ) : (
+                        <button 
+                          disabled 
+                          className="flex-1 py-2 bg-surface-container-high text-outline font-label-mono text-[13px] rounded-lg cursor-not-allowed text-center"
+                        >
+                          Mencari Driver...
+                        </button>
+                      )}
+                      
+                      {order.status === 'searching' && (
+                        <button 
+                          disabled={cancellingId === order.id}
+                          onClick={() => handleCancelOrder(order.id)}
+                          className="flex-1 py-2 bg-surface-container-high text-danger font-label-mono text-[13px] rounded-lg hover:bg-danger/20 transition-colors font-bold"
+                        >
+                          {cancellingId === order.id ? 'Membatalkan...' : 'Batalkan Pesanan'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Cetak Bukti PDF for Completed Orders */}
+                  {order.status === 'completed' && (
+                    <div className="mt-4 pt-3 border-t border-outline-variant/20 flex justify-end">
+                      <button 
+                        onClick={() => generateOrderReceipt(order)}
+                        className="flex items-center gap-2 px-4 py-2 bg-tertiary/10 hover:bg-tertiary/20 text-tertiary font-label-mono text-[12px] font-bold rounded-lg border border-tertiary/30 transition-all active:scale-95"
+                      >
+                        <Image 
+                          src="/icons/pdf.png" 
+                          alt="pdf" 
+                          width={16} 
+                          height={16} 
+                          className="object-contain"
+                        />
+                        Cetak Bukti
+                      </button>
+                    </div>
+                  )}
+
                 </div>
-                
-                {order.status === 'aktif' && (
-                  <div className="mt-4 pt-3 border-t border-outline-variant/20 flex gap-3">
-                    <button className="flex-1 py-2 bg-surface-container-high text-text-primary font-label-mono text-[13px] rounded-lg hover:bg-tertiary hover:text-on-tertiary transition-colors">
-                      Hubungi Driver
-                    </button>
-                    <button className="flex-1 py-2 bg-surface-container-high text-danger font-label-mono text-[13px] rounded-lg hover:bg-danger/20 transition-colors">
-                      Batalkan Pesanan
-                    </button>
-                  </div>
-                )}
+              );
+            })
+          ) : (
+            <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-8 flex flex-col items-center justify-center text-center mt-8">
+              <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-4xl text-outline-variant animate-pulse">receipt_long</span>
               </div>
-            );
-          })
-        ) : (
-          <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-8 flex flex-col items-center justify-center text-center mt-8">
-            <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-4">
-              <span className="material-symbols-outlined text-4xl text-outline-variant">receipt_long</span>
+              <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-2">Belum Ada Riwayat</h3>
+              <p className="font-body-sm text-[14px] text-text-secondary max-w-sm mb-6">
+                Anda belum memiliki pesanan. Yuk cobain layanan KOMAH sekarang!
+              </p>
+              <Link 
+                href="/user" 
+                className="px-6 py-2.5 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/20 transition-all font-label-mono text-[14px]"
+              >
+                Pesan Layanan
+              </Link>
             </div>
-            <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-2">Belum Ada Riwayat</h3>
-            <p className="font-body-sm text-[14px] text-text-secondary max-w-sm mb-6">
-              Anda belum memiliki pesanan. Yuk cobain layanan KOMAH sekarang!
-            </p>
-            <Link 
-              href="/user" 
-              className="px-6 py-2.5 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/20 transition-all font-label-mono text-[14px]"
-            >
-              Pesan Layanan
-            </Link>
+          )
+        ) : (
+          <div className="p-8 text-center text-[14px] text-text-secondary">
+            <Image 
+              src="/icons/loading.png" 
+              alt="loading" 
+              width={35} 
+              height={35} 
+              className="animate-spin object-contain mx-auto" 
+            />
+            <p className="mt-2">Memuat riwayat pesanan...</p>
           </div>
         )} 
       </div>

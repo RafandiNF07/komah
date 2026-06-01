@@ -4,20 +4,89 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
+import { createClient } from '@/lib/supabase/client';
 
 export default function RegisterDriverPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isAgreed, setIsAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  const handleRegister = (e) => {
+  // Form fields
+  const [namaLengkap, setNamaLengkap] = useState('');
+  const [email, setEmail] = useState('');
+  const [nomorWhatsApp, setNomorWhatsApp] = useState('');
+  const [platNomor, setPlatNomor] = useState('');
+  const [ciriKendaraan, setCiriKendaraan] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    if (isAgreed) {
-      // Logika simpan data driver ke database
-      router.push('/login');
-    } else {
-      alert("Anda harus menyetujui syarat dan ketentuan terlebih dahulu.");
+    setError('');
+    setSuccess('');
+
+    if (!isAgreed) {
+      setError('Anda harus menyetujui syarat dan ketentuan terlebih dahulu.');
+      return;
+    }
+
+    if (!platNomor.trim()) {
+      setError('Plat nomor kendaraan wajib diisi.');
+      return;
+    }
+
+    if (!ciriKendaraan.trim()) {
+      setError('Ciri kendaraan wajib diisi.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password minimal 6 karakter.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Password dan konfirmasi password tidak cocok.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: namaLengkap,
+            phone_number: nomorWhatsApp,
+            role: 'driver',
+            license_plate: platNomor,
+            vehicle_type: ciriKendaraan
+          }
+        }
+      });
+
+      if (signUpError) {
+        setError(signUpError.message || 'Gagal mendaftar. Silakan coba lagi.');
+        setLoading(false);
+        return;
+      }
+
+      setSuccess('Pendaftaran berhasil! Mengalihkan ke halaman login...');
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    } catch (err) {
+      setError('Terjadi kesalahan. Silakan coba lagi.');
+      setLoading(false);
     }
   };
 
@@ -94,6 +163,20 @@ export default function RegisterDriverPage() {
               <p className="font-body-sm text-[13px] text-text-secondary">Silakan lengkapi data diri Anda di bawah ini.</p>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="mb-3 p-2.5 rounded-xl bg-error-container/30 border border-error/30 text-error text-[12px] font-body-sm text-center">
+                {error}
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="mb-3 p-2.5 rounded-xl bg-tertiary/10 border border-tertiary/30 text-tertiary text-[12px] font-body-sm text-center">
+                {success}
+              </div>
+            )}
+
             <form className="space-y-3" onSubmit={handleRegister}>
 
               {/* Nama Lengkap Input */}
@@ -116,6 +199,8 @@ export default function RegisterDriverPage() {
                     type="text"
                     required
                     placeholder="Masukkan nama lengkap"
+                    value={namaLengkap}
+                    onChange={(e) => setNamaLengkap(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
                 </div>
@@ -141,6 +226,8 @@ export default function RegisterDriverPage() {
                     type="email"
                     required
                     placeholder="nama@student.uin-suska.ac.id"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
                 </div>
@@ -166,9 +253,72 @@ export default function RegisterDriverPage() {
                     type="tel"
                     required
                     placeholder="08xxxxxxxxxx"
+                    value={nomorWhatsApp}
+                    onChange={(e) => setNomorWhatsApp(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
                 </div>
+              </div>
+
+              {/* Plat Nomor & Ciri Kendaraan - Layout Berdampingan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+                {/* Plat Nomor Kendaraan Input */}
+                <div className="space-y-1">
+                  <label className="block mb-1 font-label-mono text-[12px] md:text-[13px] text-on-surface-variant ml-1" htmlFor="platNomor">
+                    Plat Nomor Kendaraan
+                  </label>
+                  <div className="relative flex items-center">
+                    <div className="absolute left-4 flex items-center pointer-events-none">
+                      <Image 
+                        src="/icons/notes.png" 
+                        alt="icon plat" 
+                        width={16} 
+                        height={16} 
+                        className="opacity-50" 
+                      />
+                    </div>
+                    <input
+                      id="platNomor"
+                      name="platNomor"
+                      type="text"
+                      required
+                      placeholder="BM 1234 XX"
+                      value={platNomor}
+                      onChange={(e) => setPlatNomor(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
+                    />
+                  </div>
+                </div>
+
+                {/* Ciri Kendaraan Input */}
+                <div className="space-y-1">
+                  <label className="block mb-1 font-label-mono text-[12px] md:text-[13px] text-on-surface-variant ml-1" htmlFor="ciriKendaraan">
+                    Ciri Kendaraan
+                  </label>
+                  <div className="relative flex items-center">
+                    <div className="absolute left-4 flex items-center pointer-events-none">
+                      <Image 
+                        src="/icons/motor.png" 
+                        alt="icon motor" 
+                        width={16} 
+                        height={16} 
+                        className="opacity-50" 
+                      />
+                    </div>
+                    <input
+                      id="ciriKendaraan"
+                      name="ciriKendaraan"
+                      type="text"
+                      required
+                      placeholder="Contoh: Beat Hitam / Vario Putih"
+                      value={ciriKendaraan}
+                      onChange={(e) => setCiriKendaraan(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+
               </div>
 
               {/* Layout Berdampingan untuk Password */}
@@ -193,6 +343,8 @@ export default function RegisterDriverPage() {
                       type={showPassword ? 'text' : 'password'}
                       required
                       placeholder="Masukkan password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       className="w-full pl-10 pr-10 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                     />
                     <button
@@ -237,6 +389,8 @@ export default function RegisterDriverPage() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
                       placeholder="Ulangi password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                       className="w-full pl-10 pr-10 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                     />
                     <button
@@ -277,16 +431,17 @@ export default function RegisterDriverPage() {
                   />
                 </div>
                 <label htmlFor="terms" className="font-body-sm text-[12px] text-text-secondary cursor-pointer leading-tight">
-                  Saya setuju mendaftar sebagai Driver dan mematuhi kebijakan privasi.
+                  Saya setuju mendaftar sebagai Driver dan mematuhi <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-tertiary underline font-bold hover:text-tertiary-fixed-dim inline-block">kebijakan privasi</button>.
                 </label>
               </div>
 
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full py-3 mt-1 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary font-bold rounded-xl shadow-lg shadow-tertiary/20 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] hover:-translate-y-0.5 transform active:scale-[0.98] transition-all duration-200 font-headline-sm text-[15px]"
+                disabled={loading}
+                className="w-full py-3 mt-1 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary font-bold rounded-xl shadow-lg shadow-tertiary/20 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] hover:-translate-y-0.5 transform active:scale-[0.98] transition-all duration-200 font-headline-sm text-[15px] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
               >
-                Daftar Sekarang
+                {loading ? 'Memproses...' : 'Daftar Sekarang'}
               </button>
 
             </form>
@@ -305,6 +460,43 @@ export default function RegisterDriverPage() {
 
         </div>
       </div>
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
+          <div className="bg-surface-container border border-outline-variant/40 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center border-b border-outline-variant/30 pb-3">
+              <h3 className="font-headline-sm text-[18px] font-bold text-text-primary">Kebijakan Privasi KOMAH</h3>
+              <button 
+                type="button" 
+                onClick={() => setShowPrivacyModal(false)}
+                className="w-8 h-8 rounded-full bg-surface-container-high hover:bg-surface-container-highest flex items-center justify-center transition-colors"
+              >
+                <Image src="/icons/close.png" alt="tutup" width={14} height={14} />
+              </button>
+            </div>
+            <div className="font-body-sm text-[13px] text-text-secondary max-h-[300px] overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-outline-variant">
+              <p className="font-bold text-text-primary">1. Pengumpulan Informasi</p>
+              <p>Kami mengumpulkan data pribadi seperti nama lengkap, alamat email student, nomor WhatsApp, serta informasi kendaraan (untuk driver) guna kelancaran layanan ojek kampus.</p>
+              <p className="font-bold text-text-primary">2. Penggunaan Layanan</p>
+              <p>Lokasi GPS (koordinat pickup/tujuan) Anda digunakan secara eksklusif untuk perhitungan rute jalan nyata lewat OSRM dan pencarian driver terdekat secara real-time.</p>
+              <p className="font-bold text-text-primary">3. Keamanan Data</p>
+              <p>Akun dan data transaksi Anda dilindungi dengan enkripsi Supabase database terenkripsi. Kami berkomitmen untuk menjaga data pribadi Anda tetap aman di lingkungan kampus.</p>
+              <p className="font-bold text-text-primary">4. Komunikasi Langsung</p>
+              <p>Nomor WhatsApp digunakan oleh driver dan pelanggan untuk komunikasi langsung terkait penjemputan pesanan ojek atau barang.</p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(false)}
+                className="w-full py-2.5 bg-tertiary text-on-tertiary font-bold rounded-xl hover:brightness-110 active:scale-[0.98] transition-all text-sm"
+              >
+                Saya Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

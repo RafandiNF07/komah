@@ -1,59 +1,105 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { useState } from 'react';
-
-// --- DATA DUMMY RINCIAN PERJALANAN ---
-const earningHistory = [
-  {
-    id: 1,
-    date: '24 Okt 2024, 14:30',
-    type: 'ride',
-    typeLabel: 'Antar-Jemput',
-    route: 'FST -> Perpus Pusat',
-    distance: '1.2 km',
-    price: 'Rp 15.000',
-  },
-  {
-    id: 2,
-    date: '24 Okt 2024, 11:15',
-    type: 'food',
-    typeLabel: 'Titip Makan',
-    route: 'Kantin Fekon -> FEB',
-    distance: '0.8 km',
-    price: 'Rp 12.000',
-  },
-  {
-    id: 3,
-    date: '23 Okt 2024, 16:45',
-    type: 'ride',
-    typeLabel: 'Antar-Jemput',
-    route: 'Gerbang Utama -> FDK',
-    distance: '2.5 km',
-    price: 'Rp 20.000',
-  },
-  {
-    id: 4,
-    date: '23 Okt 2024, 09:00',
-    type: 'ride',
-    typeLabel: 'Antar-Jemput',
-    route: 'Kost Panam -> FST',
-    distance: '3.1 km',
-    price: 'Rp 25.000',
-  },
-];
+import { useProfile } from '@/lib/hooks/useProfile';
+import { createClient } from '@/lib/supabase/client';
+import { generateDriverReport } from '@/lib/pdf';
+import { formatRupiah, formatDate, ORDER_TYPES } from '@/lib/constants';
 
 // --- KAMUS TAMPILAN BADGE (Gambar & Warna) ---
 const getBadgeStyleByType = (type) => {
-  if (type === 'ride') return { icon: '/icons/bike.png', style: 'bg-secondary-container/20 text-secondary border-secondary-container/50' };
+  if (type === 'bike') return { icon: '/icons/bike.png', style: 'bg-secondary-container/20 text-secondary border-secondary-container/50' };
   if (type === 'food') return { icon: '/icons/fast_food.png', style: 'bg-tertiary/10 text-tertiary border-tertiary/30' };
+  if (type === 'delivery') return { icon: '/icons/delivery2.png', style: 'bg-purple/10 text-purple border-purple/30' };
+  if (type === 'helper') return { icon: '/icons/helper.png', style: 'bg-success/10 text-success border-success/30' };
   return { icon: '/icons/notes.png', style: 'bg-surface-variant text-text-secondary border-outline-variant' };
 };
 
-
 export default function DriverEarningsPage() {
+  const { user } = useProfile();
+  
   // State untuk filter waktu
   const [timeFilter, setTimeFilter] = useState('Minggu Ini');
+  
+  // State data
+  const [orders, setOrders] = useState([]);
+  const [completionStats, setCompletionStats] = useState({ completed: 0, total: 0 });
+  const [loading, setLoading] = useState(true);
+
+  const fetchEarningsData = useCallback(async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      
+      // Calculate filter date
+      const filterDate = new Date();
+      if (timeFilter === 'Hari Ini') {
+        filterDate.setHours(0, 0, 0, 0);
+      } else if (timeFilter === 'Minggu Ini') {
+        filterDate.setDate(filterDate.getDate() - 7);
+      } else if (timeFilter === 'Bulan Ini') {
+        filterDate.setDate(filterDate.getDate() - 30);
+      }
+
+      // Fetch completed orders
+      const { data: completedData, error: completedErr } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('driver_id', user.id)
+        .eq('status', 'completed')
+        .gte('created_at', filterDate.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (completedErr) throw completedErr;
+
+      setOrders(completedData || []);
+
+      // Fetch all assigned orders for completion rate
+      const { data: assignedData, error: assignedErr } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('driver_id', user.id)
+        .gte('created_at', filterDate.toISOString());
+
+      if (assignedErr) throw assignedErr;
+
+      const totalCount = assignedData ? assignedData.length : 0;
+      const completedCount = completedData ? completedData.length : 0;
+
+      setCompletionStats({
+        completed: completedCount,
+        total: totalCount,
+      });
+
+    } catch (err) {
+      console.error('Error fetching earnings:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, timeFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchEarningsData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchEarningsData]);
+
+  const totalEarnings = orders.reduce((sum, o) => sum + Number(o.total_price), 0);
+  const completionRate = completionStats.total > 0 
+    ? Math.round((completionStats.completed / completionStats.total) * 100) 
+    : 100;
+
+  const handleExportPDF = () => {
+    if (orders.length === 0) {
+      alert('Tidak ada data transaksi untuk diexport pada periode ini.');
+      return;
+    }
+    generateDriverReport(orders, timeFilter);
+  };
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-6 pb-24 md:pb-8 relative">
@@ -88,13 +134,16 @@ export default function DriverEarningsPage() {
           </div>
 
           {/* Tombol Export (Desktop) */}
-          <button className="hidden md:flex items-center gap-2 bg-transparent border-2 border-tertiary text-tertiary px-5 py-2 rounded-xl font-label-mono text-[13px] font-bold hover:bg-tertiary hover:text-on-tertiary transition-colors">
+          <button 
+            onClick={handleExportPDF}
+            className="hidden md:flex items-center gap-2 bg-transparent border-2 border-tertiary text-tertiary px-5 py-2 rounded-xl font-label-mono text-[13px] font-bold hover:bg-tertiary hover:text-on-tertiary transition-colors"
+          >
             <Image 
-                src="/icons/pdf.png" 
-                alt="pdf" 
-                width={20} 
-                height={20} 
-                className="object-contain"
+              src="/icons/pdf.png" 
+              alt="pdf" 
+              width={20} 
+              height={20} 
+              className="object-contain"
             />
             Export PDF
           </button>
@@ -108,18 +157,20 @@ export default function DriverEarningsPage() {
         <div className="bg-surface-container/50 backdrop-blur-md p-6 rounded-2xl border border-outline-variant/20 shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Image 
-                src="/icons/wallet.png" 
-                alt="wallet" 
-                width={50} 
-                height={50} 
-                className="object-contain"
+              src="/icons/wallet.png" 
+              alt="wallet" 
+              width={50} 
+              height={50} 
+              className="object-contain"
             />
           </div>
           <h3 className="font-label-mono text-[13px] text-text-secondary mb-2 relative z-10">Total Pendapatan</h3>
-          <p className="font-headline-md text-[32px] font-bold text-tertiary relative z-10">Rp 1.250.000</p>
+          <p className="font-headline-md text-[32px] font-bold text-tertiary relative z-10">
+            {formatRupiah(totalEarnings)}
+          </p>
           <div className="mt-4 flex items-center gap-2 text-success font-body-sm text-[13px] relative z-10">
-            <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
-            <span>+15% dari minggu lalu</span>
+            <span className="material-symbols-outlined text-[16px]">trending_up</span>
+            <span>Periode {timeFilter}</span>
           </div>
         </div>
 
@@ -127,45 +178,48 @@ export default function DriverEarningsPage() {
         <div className="bg-surface-container/50 backdrop-blur-md p-6 rounded-2xl border border-outline-variant/20 shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Image 
-                src="/icons/rute.png" 
-                alt="rute" 
-                width={50} 
-                height={50} 
-                className="object-contain"
+              src="/icons/rute.png" 
+              alt="rute" 
+              width={50} 
+              height={50} 
+              className="object-contain"
             />
           </div>
           <h3 className="font-label-mono text-[13px] text-text-secondary mb-2 relative z-10">Total Trip Selesai</h3>
-          <p className="font-headline-md text-[32px] font-bold text-text-primary relative z-10">42 <span className="text-[16px] text-text-secondary font-normal">Trip</span></p>
+          <p className="font-headline-md text-[32px] font-bold text-text-primary relative z-10">
+            {orders.length} <span className="text-[16px] text-text-secondary font-normal">Trip</span>
+          </p>
           <div className="mt-4 flex items-center gap-2 text-text-secondary font-body-sm text-[13px] relative z-10">
             <span className="material-symbols-outlined text-[16px]">schedule</span>
-            <span>Rata-rata 6 trip/hari</span>
+            <span>Rata-rata trip aktif</span>
           </div>
         </div>
 
-        {/* Tingkat Penyelesaian (Menggantikan Rating & Bonus) */}
+        {/* Tingkat Penyelesaian */}
         <div className="bg-surface-container/50 backdrop-blur-md p-6 rounded-2xl border border-outline-variant/20 shadow-lg relative overflow-hidden group hover:-translate-y-1 transition-transform">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Image 
-                src="/icons/check.png" 
-                alt="check" 
-                width={50} 
-                height={50} 
-                className="object-contain"
+              src="/icons/check.png" 
+              alt="check" 
+              width={50} 
+              height={50} 
+              className="object-contain"
             />
           </div>
           <h3 className="font-label-mono text-[13px] text-text-secondary mb-2 relative z-10">Tingkat Penyelesaian</h3>
           
           <div className="flex items-end gap-1 relative z-10">
-             <p className="font-headline-md text-[32px] font-bold text-text-primary">95</p>
+             <p className="font-headline-md text-[32px] font-bold text-text-primary">{completionRate}</p>
              <p className="text-[20px] font-bold text-text-primary mb-1">%</p>
           </div>
 
           <div className="mt-4 flex flex-col gap-1.5 relative z-10">
-             {/* Progress Bar Kecil */}
              <div className="w-full bg-surface-container-high rounded-full h-1.5 overflow-hidden">
-               <div className="bg-success h-1.5 rounded-full" style={{ width: '95%' }}></div>
+               <div className="bg-success h-1.5 rounded-full" style={{ width: `${completionRate}%` }}></div>
              </div>
-             <p className="text-text-secondary font-body-sm text-[12px] mt-1">42 selesai dari 44 pesanan masuk</p>
+             <p className="text-text-secondary font-body-sm text-[12px] mt-1">
+               {completionStats.completed} selesai dari {completionStats.total} total trip ditugaskan
+             </p>
           </div>
         </div>
 
@@ -178,67 +232,74 @@ export default function DriverEarningsPage() {
         </div>
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="bg-surface-container-high/50 text-text-secondary font-label-mono text-[13px] border-b border-outline-variant/30">
-                <th className="p-4 font-bold">Tanggal</th>
-                <th className="p-4 font-bold">Layanan</th>
-                <th className="p-4 font-bold">Rute</th>
-                <th className="p-4 font-bold">Jarak</th>
-                <th className="p-4 font-bold text-right">Pendapatan</th>
-              </tr>
-            </thead>
-            <tbody className="font-body-md text-[14px] text-on-surface divide-y divide-outline-variant/20">
-              {earningHistory.map((row) => {
-                const badge = getBadgeStyleByType(row.type);
-                return (
-                  <tr key={row.id} className="hover:bg-surface-container-high/30 transition-colors">
-                    <td className="p-4 text-text-secondary">{row.date}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border font-label-mono text-[11px] font-bold ${badge.style}`}>
-                        <Image 
-                          src={badge.icon} 
-                          alt={row.typeLabel} 
-                          width={14} 
-                          height={14} 
-                          className="object-contain"
-                        />
-                        {row.typeLabel}
-                      </span>
-                    </td>
-                    <td className="p-4 text-text-primary">{row.route}</td>
-                    <td className="p-4 text-text-secondary">{row.distance}</td>
-                    <td className="p-4 font-headline-sm text-[16px] font-bold text-right text-tertiary">{row.price}</td>
+          {!loading ? (
+            orders.length > 0 ? (
+              <table className="w-full text-left border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="bg-surface-container-high/50 text-text-secondary font-label-mono text-[13px] border-b border-outline-variant/30">
+                    <th className="p-4 font-bold">Tanggal</th>
+                    <th className="p-4 font-bold">Layanan</th>
+                    <th className="p-4 font-bold">Rute</th>
+                    <th className="p-4 font-bold">Jarak</th>
+                    <th className="p-4 font-bold text-right">Pendapatan</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Tombol Muat Lebih Banyak */}
-        <div className="p-4 border-t border-outline-variant/30 flex justify-center bg-surface-container-low/50">
-          <button className="text-tertiary font-label-mono text-[13px] font-bold hover:underline flex items-center gap-1">
-            <Image 
-                src="/icons/more.png"
-                alt="more" 
-                width={18} 
-                height={18} 
-                className="material-symbols-outlined text-[18px]"
-            />
-            Muat Lebih Banyak
-          </button>
+                </thead>
+                <tbody className="font-body-md text-[14px] text-on-surface divide-y divide-outline-variant/20">
+                  {orders.map((row) => {
+                    const badge = getBadgeStyleByType(row.type);
+                    return (
+                      <tr key={row.id} className="hover:bg-surface-container-high/30 transition-colors">
+                        <td className="p-4 text-text-secondary">{formatDate(row.created_at)}</td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg border font-label-mono text-[11px] font-bold ${badge.style}`}>
+                            <Image 
+                              src={badge.icon} 
+                              alt={row.type} 
+                              width={14} 
+                              height={14} 
+                              className="object-contain"
+                            />
+                            {ORDER_TYPES[row.type]?.label || row.type}
+                          </span>
+                        </td>
+                        <td className="p-4 text-text-primary truncate max-w-[250px]" title={`${row.pickup_location} -> ${row.destination_location || '-'}`}>
+                          {row.pickup_location} {row.destination_location ? `-> ${row.destination_location}` : ''}
+                        </td>
+                        <td className="p-4 text-text-secondary">
+                          {row.distance_estimate ? `${row.distance_estimate} km` : '-'}
+                        </td>
+                        <td className="p-4 font-headline-sm text-[16px] font-bold text-right text-tertiary">
+                          {formatRupiah(row.total_price)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-8 text-center text-[14px] text-text-secondary">
+                Tidak ada transaksi pada periode ini.
+              </div>
+            )
+          ) : (
+            <div className="p-8 text-center text-[14px] text-text-secondary">
+              Memuat data transaksi...
+            </div>
+          )}
         </div>
       </div>
 
       {/* ================= FAB (Floating Action Button) Mobile Export ================= */}
-      <button className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-tertiary text-on-tertiary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-50">
+      <button 
+        onClick={handleExportPDF}
+        className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-tertiary text-on-tertiary rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-50"
+      >
         <Image 
-            src="/icons/pdf.png" 
-            alt="pdf" 
-            width={30} 
-            height={30} 
-            className="object-contain"
+          src="/icons/pdf.png" 
+          alt="pdf" 
+          width={30} 
+          height={30} 
+          className="object-contain"
         />
       </button>
 

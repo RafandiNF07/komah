@@ -2,21 +2,53 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { useProfile } from '@/lib/hooks/useProfile';
+import { createClient } from '@/lib/supabase/client';
 
 export default function ProfilePage() {
+  const { profile, user, loading, refetch } = useProfile();
+
   const [isEditing, setIsEditing] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
+
+  // Form state — initialized from profile data
+  const [namaLengkap, setNamaLengkap] = useState('');
+  const [nomorWA, setNomorWA] = useState('');
   
   // Referensi untuk memicu klik pada input file tersembunyi
   const fileInputRef = useRef(null);
+
+  // Sync form state when profile data loads
+  useEffect(() => {
+    if (profile) {
+      const timer = setTimeout(() => {
+        setNamaLengkap(profile.full_name || '');
+        setNomorWA(profile.phone_number || '');
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [profile]);
 
   // Memuat foto profil dari penyimpanan lokal (saat web pertama kali dibuka)
   useEffect(() => {
     const savedImage = localStorage.getItem('userProfilePic');
     if (savedImage) {
-      setProfileImage(savedImage);
+      const timer = setTimeout(() => {
+        setProfileImage(savedImage);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, []);
+
+  // Auto-hide feedback after 3 seconds
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   // Logika saat pengguna memilih gambar dari galeri
   const handleImageChange = (e) => {
@@ -42,10 +74,98 @@ export default function ProfilePage() {
     }
   };
 
+  // Handler simpan profil ke Supabase
+  const handleSave = async () => {
+    if (!user) return;
+    setSaving(true);
+    setFeedback(null);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from('profiles').update({
+        full_name: namaLengkap,
+        phone_number: nomorWA,
+      }).eq('id', user.id);
+
+      if (error) throw error;
+
+      setIsEditing(false);
+      setFeedback({ type: 'success', message: 'Profil berhasil diperbarui!' });
+      // Refetch profile data so sidebar also updates
+      refetch();
+      // Dispatch event so layout sidebar name updates immediately
+      window.dispatchEvent(new Event('profilePictureUpdated'));
+    } catch (err) {
+      console.error('Save profile error:', err);
+      setFeedback({ type: 'error', message: 'Gagal menyimpan profil. Silakan coba lagi.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Handle cancel — reset form values to current profile
+  const handleCancel = () => {
+    setIsEditing(false);
+    if (profile) {
+      setNamaLengkap(profile.full_name || '');
+      setNomorWA(profile.phone_number || '');
+    }
+  };
+
+  // Determine the avatar source: profile.avatar_url from Supabase, fallback to localStorage
+  const avatarSrc = profile?.avatar_url || profileImage;
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="w-full max-w-2xl mx-auto pb-4">
+        <div className="mb-4 pt-2 md:pt-0 flex items-end justify-center">
+          <div className="text-center">
+            <h1 className="font-headline-md text-[35px] font-bold text-text-primary">Profil Saya</h1>
+            <p className="font-body-sm text-[14px] text-text-secondary mt-0.5">Kelola informasi akun Anda.</p>
+          </div>
+        </div>
+        <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-5 md:p-6 shadow-md">
+          <div className="flex flex-col items-center mb-6 pb-6 border-b border-outline-variant/30">
+            <div className="w-24 h-24 rounded-full bg-surface-container-high animate-pulse mb-3"></div>
+            <div className="h-5 w-32 bg-surface-container-high animate-pulse rounded-md mb-1"></div>
+            <div className="h-4 w-40 bg-surface-container-high animate-pulse rounded-md mt-0.5"></div>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <div className="h-3 w-20 bg-surface-container-high animate-pulse rounded-md ml-1"></div>
+                <div className="h-10 w-full bg-surface-container-high animate-pulse rounded-xl"></div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="h-3 w-24 bg-surface-container-high animate-pulse rounded-md ml-1"></div>
+                <div className="h-10 w-full bg-surface-container-high animate-pulse rounded-xl"></div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-3 w-20 bg-surface-container-high animate-pulse rounded-md ml-1"></div>
+              <div className="h-10 w-full bg-surface-container-high animate-pulse rounded-xl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     // Dibuat lebih rapat agar muat di satu layar (halaman)
     <div className="w-full max-w-2xl mx-auto pb-4">
       
+      {/* Feedback Toast */}
+      {feedback && (
+        <div className={`fixed top-4 right-4 z-[200] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
+          feedback.type === 'success' 
+            ? 'bg-success/90 text-on-tertiary' 
+            : 'bg-cancel/90 text-on-tertiary'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
+
       {/* Header Profil (Dikecilkan jaraknya) */}
       <div className="mb-4 pt-2 md:pt-0 flex items-end justify-center">
         <div className="text-center">
@@ -73,8 +193,8 @@ export default function ProfilePage() {
           <div className="relative">
             {/* Bingkai Foto (Tidak lagi bisa diklik secara langsung) */}
             <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
-               {profileImage ? (
-                 <Image src={profileImage} alt="Profil" width={96} height={96} className="w-full h-full object-cover" />
+               {avatarSrc ? (
+                 <Image src={avatarSrc} alt="Profil" width={96} height={96} className="w-full h-full object-cover" />
                ) : (
                  <Image
                     src="/icons/person.png"
@@ -103,8 +223,8 @@ export default function ProfilePage() {
             )}
           </div>
           
-          <h2 className="font-headline-md text-[20px] font-bold text-text-primary mt-3">Lisa Harniati</h2>
-          <p className="font-label-mono text-[12px] text-text-secondary mt-0.5">Mahasiswa UIN Suska Riau</p>
+          <h2 className="font-headline-md text-[20px] font-bold text-text-primary mt-3">{profile?.full_name || 'User'}</h2>
+          <p className="font-label-mono text-[12px] text-text-secondary mt-0.5">{profile?.role === 'customer' ? 'Pelanggan' : (profile?.role || 'Pelanggan')}</p>
           
         </div>
 
@@ -116,7 +236,8 @@ export default function ProfilePage() {
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nama Lengkap</label>
               <input 
                 type="text" 
-                defaultValue="Lisa Harniati" 
+                value={namaLengkap}
+                onChange={(e) => setNamaLengkap(e.target.value)}
                 disabled={!isEditing}
                 className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
               />
@@ -126,7 +247,8 @@ export default function ProfilePage() {
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nomor WhatsApp</label>
               <input 
                 type="tel" 
-                defaultValue="081234567890" 
+                value={nomorWA}
+                onChange={(e) => setNomorWA(e.target.value)}
                 disabled={!isEditing}
                 className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
               />
@@ -145,7 +267,7 @@ export default function ProfilePage() {
                   />
               <input 
                 type="email" 
-                value="lisa.harniati@student.uin-suska.ac.id" 
+                value={user?.email || ''} 
                 disabled 
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/20 rounded-xl text-text-secondary font-body-md text-[13px] cursor-not-allowed"
               />
@@ -157,16 +279,18 @@ export default function ProfilePage() {
             {isEditing ? (
               <>
                 <button 
-                  onClick={() => setIsEditing(false)}
-                  className="flex-[1] py-3 bg-close text-primary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-close/30 transition-all font-label-mono text-[13px]"
+                  onClick={handleCancel}
+                  disabled={saving}
+                  className="flex-[1] py-3 bg-close text-primary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-close/30 transition-all font-label-mono text-[13px] disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button 
-                  onClick={() => { setIsEditing(false); alert("Profil berhasil diperbarui!"); }}
-                  className="flex-[2] py-3 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/30 transition-all font-label-mono text-[13px]"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-[2] py-3 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/30 transition-all font-label-mono text-[13px] disabled:opacity-50"
                 >
-                  Simpan Perubahan
+                  {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>
               </>
             ) : (

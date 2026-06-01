@@ -3,9 +3,61 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError('Email atau password salah');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch user role from profiles
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        setError('Gagal memuat profil pengguna');
+        setLoading(false);
+        return;
+      }
+
+      // Redirect based on role using window.location.href to ensure middleware runs
+      if (profile.role === 'driver') {
+        window.location.href = '/driver';
+      } else if (profile.role === 'customer') {
+        window.location.href = '/user';
+      } else {
+        window.location.href = '/';
+      }
+    } catch (err) {
+  console.error(err);
+  setError(err?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+  setLoading(false);
+}
+  };
 
   return (
     <main className="h-[100dvh] w-screen flex items-center justify-center p-4 md:p-8 bg-primary-container overflow-hidden">
@@ -86,7 +138,14 @@ export default function LoginPage() {
               <p className="font-body-sm text-[14px] text-text-secondary">Silakan masukkan kredensial kampus Anda.</p>
             </div>
 
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-3 rounded-xl bg-error-container/30 border border-error/30 text-error text-[13px] font-body-sm text-center">
+                {error}
+              </div>
+            )}
+
+            <form className="space-y-5" onSubmit={handleLogin}>
 
               {/* NIM / Email Input */}
               <div className="space-y-1.5">
@@ -112,6 +171,8 @@ export default function LoginPage() {
                     type="text"
                     autoComplete="username"
                     placeholder="nama@student.uin-suska.ac.id"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     // pl-12 (padding-left) berfungsi agar teks ketikan tidak menabrak gambar ikonmu
                     className="w-full pl-12 pr-12 py-3.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[15px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
@@ -144,6 +205,8 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="new-password"
                     placeholder="Masukkan password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-12 pr-12 py-3.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[15px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
                   
@@ -178,9 +241,10 @@ export default function LoginPage() {
               {/* Primary Action Button */}
               <button
                 type="submit"
-                className="w-full py-3.5 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary font-bold rounded-xl shadow-lg shadow-tertiary/20 transform hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] active:scale-[0.98] transition-all duration-300 font-headline-sm text-[18px] mt-2"
+                disabled={loading}
+                className="w-full py-3.5 bg-tertiary hover:bg-tertiary-fixed-dim text-on-tertiary font-bold rounded-xl shadow-lg shadow-tertiary/20 transform hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] active:scale-[0.98] transition-all duration-300 font-headline-sm text-[18px] mt-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-lg"
               >
-                Masuk Sekarang
+                {loading ? 'Memproses...' : 'Masuk Sekarang'}
               </button>
 
             </form>
