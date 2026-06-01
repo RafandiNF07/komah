@@ -1,5 +1,5 @@
 # 🐝 KOMAH (Koperasi Mahasiswa) - Aplikasi Ride-Hailing & Layanan Kampus Terintegrasi
-
+1
 KOMAH adalah platform ride-hailing dan layanan mahasiswa terintegrasi berbasis web yang dirancang khusus untuk lingkungan kampus. Dikelola oleh Koperasi Mahasiswa, aplikasi ini memberdayakan mahasiswa dengan menyediakan empat pilar layanan utama (**Ride, Food, Helper, Delivery**) sekaligus memberikan peluang kerja bagi mahasiswa sebagai driver dengan sistem bagi hasil yang adil.
 
 Aplikasi ini dibangun menggunakan **Next.js 16 (App Router)**, **Tailwind CSS v4** untuk desain visual premium berbasis *glassmorphism*, dan **Supabase** sebagai backend real-time.
