@@ -9,22 +9,29 @@ Aplikasi ini dibangun menggunakan **Next.js 16 (App Router)**, **Tailwind CSS v4
 ## 🚀 Fitur Utama & Keunggulan Sistem
 
 ### 1. 🗺️ Unified Interactive Map (Leaflet & OSRM)
-* **Peta Tunggal Multi-Marker (Dual Mode)**: Menggantikan desain lama yang menggunakan dua peta terpisah. Sekarang, halaman **Ride** dan **Delivery** menggunakan satu peta tunggal interaktif berbasis **Leaflet** untuk menentukan titik jemput dan tujuan sekaligus.
-* **Draggable & Auto-Geocode**: Marker Hijau (Jemput) dan Merah (Tujuan) dapat digeser sesuka hati. Alamat penjemputan dan tujuan otomatis ter-update di kolom input di atas peta menggunakan reverse geocoding API **Nominatim (OpenStreetMap)** secara real-time.
+* **Peta Tunggal Multi-Marker (Dual Mode)**: Menggunakan satu peta tunggal interaktif berbasis **Leaflet** untuk menentukan titik jemput dan tujuan sekaligus pada layanan **Ride**, **Delivery**, dan **KOMAH Food**.
+* **Integrasi KOMAH Food Premium**: Pengguna dapat menandai lokasi fisik **Restoran / Kantin** (Marker Hijau 🟢) dan **Titik Pengantaran Makanan** (Marker Merah 🔴) secara dinamis. Rute riil jalan serta estimasi ongkos kirim dihitung akurat berdasarkan lokasi restoran riil (bukan asumsi dari pusat kampus).
+* **Draggable & Auto-Geocode**: Marker Hijau (Pickup) dan Merah (Destination) dapat digeser secara langsung di peta. Alamat fisik ter-geocode otomatis menggunakan reverse geocoding API **Nominatim (OpenStreetMap)** secara real-time.
 * **OSRM Routing Engine**: Mengintegrasikan API **Open Source Routing Machine (OSRM)** secara dinamis untuk mengambil geometri jalan nyata, menggambar garis rute (*Polyline*) berwarna premium (`#F0C052`), dan mengalkulasi jarak serta durasi perjalanan secara akurat.
 * **Fitur Auto-Bounds**: Peta secara cerdas mendeteksi jarak antar marker dan melakukan auto-zoom/center agar rute dan kedua marker selalu muat di dalam layar secara proporsional.
 
-### 2. 🔐 Sistem Autentikasi & Multi-Role (Supabase Auth)
-* **Dua Akses Peran Utama**: Terdiri dari peran **Customer (Pelanggan)** dan **Driver (Pengemudi)**.
+### 2. 🔐 Sistem Autentikasi, Multi-Role, & Kebijakan Privasi Interaktif
+* **Dua Akses Peran Utama**: Terdiri dari peran **Customer (Pelanggan)** dan **Driver (Mitra Driver)**.
 * **Keamanan Route Middleware**: Dilengkapi dengan `middleware.js` Next.js untuk memproteksi rute `/user/*` dan `/driver/*` secara ketat berdasarkan status login dan peran pengguna di database Supabase.
 * **Profil Kustom & Media**: Menggunakan hook kustom `useProfile` untuk sinkronisasi profil, serta integrasi **Supabase Storage** untuk mengunggah dan memperbarui foto profil pengguna secara aman.
+* **Interactive Privacy Modal**: Halaman registrasi Driver & Pelanggan dilengkapi dengan checkbox persetujuan kebijakan privasi yang terhubung ke **Glassmorphic Popup Modal**. Pengguna dapat membaca kebijakan layanan langsung di atas form pendaftaran tanpa teralihkan dari halaman.
+* **Halaman Kebijakan Resmi (`/kebijakan`)**: Halaman kebijakan mandiri (`app/kebijakan/page.jsx`) dengan struktur bento-card tabbed UI untuk menelusuri **Syarat & Ketentuan Layanan (ToS)** serta **Kebijakan Privasi** secara utuh dan responsif, lengkap dengan tombol kembali cerdas.
 
-### 3. ⚡ Sinkronisasi Real-Time & Transaksi Aman
+### 3. 🛵 Pendaftaran Driver Teroptimasi & Identifikasi Cepat
+* **Ciri Kendaraan (Text Input)**: Menggantikan sistem pilihan jenis kendaraan dropdown lama yang kaku. Driver kini dapat menuliskan ciri spesifik motor mereka secara bebas (contoh: *Beat Hitam / Vario Merah*) agar memudahkan mahasiswa mengenali driver di lapangan.
+* **Ikon PNG Lokal Premium**: Menggantikan Google Material Symbols ligatures yang rentan gagal dimuat di browser dengan file gambar PNG tajam beresolusi tinggi di folder `/icons/` (seperti `/icons/notes.png` untuk Plat Nomor dan `/icons/motor.png` untuk ciri kendaraan).
+
+### 4. ⚡ Sinkronisasi Real-Time & Transaksi Aman
 * **Supabase Realtime Subscription**: Halaman riwayat order pelanggan dan daftar pesanan aktif driver terhubung langsung ke database Postgres melalui websocket. Status pesanan berubah secara instan (*Pending ➔ Accepted ➔ Completed/Cancelled*) tanpa perlu me-refresh halaman.
 * **Race Condition Prevention**: Pengambilan order oleh driver diamankan menggunakan fungsi RPC Database (`take_order`) dengan transaksi Postgres terisolasi, memastikan satu order hanya bisa diambil oleh maksimal satu driver.
 * **Estimasi Biaya Transparan**: Biaya perjalanan dihitung otomatis berdasarkan jarak tempuh rute jalan nyata per kilometer secara transparan.
 
-### 4. 🖨️ Integrasi WhatsApp & Ekspor PDF / Laporan
+### 5. 🖨️ Integrasi WhatsApp & Ekspor PDF / Laporan
 * **Direct WhatsApp Messaging**: Sistem otomatis merangkum detail pesanan dan menyediakan tombol pesan langsung ke nomor WhatsApp driver atau pelanggan untuk mempermudah komunikasi penjemputan.
 * **jsPDF Receipts**: Pelanggan dapat mengunduh struk bukti pembayaran formal berformat PDF langsung setelah pesanan selesai.
 * **Driver Earning Statement**: Driver dapat mengekspor rekap bulanan pendapatan serta statistik performa mereka ke dalam file laporan PDF formal yang rapi.
@@ -46,10 +53,11 @@ Aplikasi ini dibangun menggunakan **Next.js 16 (App Router)**, **Tailwind CSS v4
 
 ```bash
 ├── app/
-│   ├── (auth)/             # Halaman Login & Registrasi
+│   ├── (auth)/             # Halaman Login & Registrasi (Driver & Pelanggan)
 │   ├── (dashboard)/
 │   │   ├── driver/         # Fitur Driver (Dashboard, Aktif Order, Pendapatan, Profil)
 │   │   └── user/           # Fitur Pelanggan (Ride, Delivery, Food, Helper, History)
+│   ├── kebijakan/          # Halaman Kebijakan Layanan & Privasi Resmi (ToS & Privacy)
 │   ├── layout.js           # Layout global & inisialisasi styles
 │   └── page.jsx            # Landing page utama KOMAH
 ├── components/
@@ -88,24 +96,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 ### 3. Konfigurasi Database Supabase (Postgres)
-Jalankan instruksi SQL yang berada di dalam [desain/DATABASE_SCHEMA.md](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/desain/DATABASE_SCHEMA.md) di SQL Editor Supabase Anda. Ini mencakup pembuatan tabel `profiles`, `orders`, konfigurasi RLS (Row Level Security), real-time replication, trigger pembuatan profil otomatis saat registrasi, serta fungsi RPC `take_order`.
-
-Fungsi RPC `take_order` yang digunakan untuk mencegah *race conditions*:
-```sql
-CREATE OR REPLACE FUNCTION take_order(p_order_id UUID, p_driver_id UUID)
-RETURNS BOOLEAN AS $$
-DECLARE
-  v_updated INT;
-BEGIN
-  UPDATE orders
-  SET driver_id = p_driver_id, status = 'accepted'
-  WHERE id = p_order_id AND status = 'pending' AND driver_id IS NULL;
-  
-  GET DIAGNOSTICS v_updated = ROW_COUNT;
-  RETURN v_updated > 0;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
+Jalankan instruksi SQL yang berada di dalam [desain/DATABASE_SCHEMA.md](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/desain/DATABASE_SCHEMA.md) di SQL Editor Supabase Anda. Ini mencakup pembuatan tabel `profiles`, `orders`, konfigurasi RLS (Row Level Security), real-time replication, trigger pembuatan profil otomatis saat registrasi, serta fungsi RPC `take_order` (untuk mengamankan klaim pesanan aktif driver tanpa race conditions).
 
 ---
 
