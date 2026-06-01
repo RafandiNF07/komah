@@ -158,7 +158,7 @@ export default function MapPicker({
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=id&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=id&viewbox=101.1,0.7,101.6,0.2&bounded=1&addressdetails=1`,
         { headers: { 'Accept-Language': 'id' } }
       );
       const data = await response.json();
