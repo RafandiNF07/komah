@@ -441,7 +441,13 @@ export default function DriverDashboardPage() {
                   rel="noopener noreferrer"
                   className="flex-1 lg:flex-none flex items-center justify-center gap-2 py-3 bg-[#25D366]/10 border border-[#25D366]/30 text-[#1DA851] rounded-xl font-label-mono text-[13px] font-bold hover:bg-[#25D366] hover:text-white transition-colors active:scale-95 text-center"
                 >
-                  <span className="material-symbols-outlined text-[18px]">forum</span>
+                  <Image 
+                    src="/icons/whatsapp.png" 
+                    alt="wa" 
+                    width={18} 
+                    height={18} 
+                    className="object-contain" 
+                  />
                   Chat WA
                 </a>
                 
@@ -475,6 +481,17 @@ export default function DriverDashboardPage() {
               </div>
               
             </div>
+          </div>
+        ) : loading ? (
+          <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/30 shadow-sm text-center py-12 flex flex-col items-center justify-center">
+            <Image 
+              src="/icons/loading.png" 
+              alt="loading" 
+              width={32} 
+              height={32} 
+              className="animate-spin object-contain mb-3" 
+            />
+            <p className="font-body-sm text-text-secondary text-[13px]">Memuat orderan aktif...</p>
           </div>
         ) : (
           <div className="bg-surface-container p-6 rounded-2xl border border-outline-variant/30 shadow-sm text-center space-y-4">

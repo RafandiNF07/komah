@@ -38,18 +38,19 @@ const getStatusStyle = (status) => {
 
 export default function DriverHistoryPage() {
   const { user } = useProfile();
+  const userId = user?.id;
   const [activeTab, setActiveTab] = useState('Semua');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchDriverHistory = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
     try {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('orders')
         .select('*, customer:profiles!customer_id(*)')
-        .eq('driver_id', user.id)
+        .eq('driver_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -59,10 +60,10 @@ export default function DriverHistoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
-    if (!user) return; // Guard against null user on mount
+    if (!userId) return; // Guard against null user on mount
 
     const timer = setTimeout(() => {
       fetchDriverHistory();
@@ -74,7 +75,7 @@ export default function DriverHistoryPage() {
       .channel('driver_history_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders', filter: `driver_id=eq.${user.id}` },
+        { event: '*', schema: 'public', table: 'orders', filter: `driver_id=eq.${userId}` },
         () => {
           fetchDriverHistory();
         }
@@ -85,7 +86,7 @@ export default function DriverHistoryPage() {
       clearTimeout(timer);
       supabase.removeChannel(subscription);
     };
-  }, [user, fetchDriverHistory]);
+  }, [userId, fetchDriverHistory]);
 
   // Logika Filter Data
   const filteredHistory = orders.filter(item => {
@@ -225,7 +226,13 @@ export default function DriverHistoryPage() {
                     {/* Info Bawah Kiri */}
                     {isCancelled ? (
                       <div className="flex items-center gap-2 text-text-secondary italic">
-                         <span className="material-symbols-outlined text-[18px]">info</span>
+                         <Image 
+                           src="/icons/cancel.png" 
+                           alt="info" 
+                           width={18} 
+                           height={18} 
+                           className="object-contain opacity-60" 
+                         />
                          <span className="font-body-sm text-[13px]">Dibatalkan oleh pelanggan</span>
                       </div>
                     ) : (
@@ -239,7 +246,7 @@ export default function DriverHistoryPage() {
                             className="object-contain"
                           />
                         </div>
-                        <span className="font-body-sm text-[14px] text-text-secondary">
+                        <span className="font-headline-sm text-[14px] font-bold text-text-primary">
                           {order.customer?.full_name || 'Pelanggan'}
                         </span>
                       </div>
@@ -255,7 +262,13 @@ export default function DriverHistoryPage() {
             })
           ) : (
             <div className="flex flex-col items-center justify-center py-20 bg-surface-container rounded-2xl border border-outline-variant/30 border-dashed">
-               <span className="material-symbols-outlined text-5xl text-text-secondary mb-3">history</span>
+               <Image 
+                 src="/icons/history.png" 
+                 alt="history" 
+                 width={48} 
+                 height={48} 
+                 className="opacity-40 mb-3" 
+               />
                <p className="font-body-md text-text-secondary">Tidak ada riwayat pesanan.</p>
             </div>
           )

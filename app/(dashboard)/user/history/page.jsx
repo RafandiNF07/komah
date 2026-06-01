@@ -302,7 +302,13 @@ export default function HistoryPage() {
                           rel="noopener noreferrer"
                           className="flex-1 py-2 bg-surface-container-high text-text-primary font-label-mono text-[13px] rounded-lg hover:bg-tertiary hover:text-on-tertiary transition-colors text-center font-bold flex items-center justify-center gap-1.5"
                         >
-                          <span className="material-symbols-outlined text-[16px]">forum</span>
+                          <Image 
+                            src="/icons/whatsapp.png" 
+                            alt="wa" 
+                            width={16} 
+                            height={16} 
+                            className="object-contain" 
+                          />
                           Hubungi Driver ({order.driver.full_name})
                         </a>
                       ) : (
@@ -351,7 +357,13 @@ export default function HistoryPage() {
           ) : (
             <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-8 flex flex-col items-center justify-center text-center mt-8">
               <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-4">
-                <span className="material-symbols-outlined text-4xl text-outline-variant animate-pulse">receipt_long</span>
+                <Image 
+                  src="/icons/notes.png" 
+                  alt="receipt" 
+                  width={48} 
+                  height={48} 
+                  className="opacity-40 animate-pulse" 
+                />
               </div>
               <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-2">Belum Ada Riwayat</h3>
               <p className="font-body-sm text-[14px] text-text-secondary max-w-sm mb-6">

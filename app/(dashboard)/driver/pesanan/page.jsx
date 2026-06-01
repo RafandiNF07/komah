@@ -285,7 +285,13 @@ export default function DriverOrdersPage() {
           <div className="col-span-full flex flex-col items-center justify-center py-24 text-text-secondary bg-surface-container border border-outline-variant/30 rounded-2xl border-dashed">
             <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-4 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary/20"></span>
-              <span className="material-symbols-outlined text-4xl text-tertiary animate-pulse">radar</span>
+              <Image 
+                src="/icons/gps.png" 
+                alt="radar" 
+                width={40} 
+                height={40} 
+                className="animate-pulse object-contain" 
+              />
             </div>
             <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-1">Mencari Orderan...</h3>
             <p className="font-body-sm text-[14px]">Menunggu pelanggan di sekitar Anda.</p>

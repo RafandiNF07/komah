@@ -12,6 +12,7 @@ export default function ProfilePage() {
   const [profileImage, setProfileImage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Form state — initialized from profile data
   const [namaLengkap, setNamaLengkap] = useState('');
@@ -121,27 +122,71 @@ export default function ProfilePage() {
     }
   }, [feedback]);
 
-  // Logika saat pengguna memilih gambar dari galeri
-  const handleImageChange = (e) => {
+  // Logika saat pengguna memilih gambar dari galeri & mengunggah ke Supabase Storage
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Gunakan FileReader untuk membaca gambar dan mengubahnya jadi teks (Base64)
-      const reader = new FileReader();
+    if (!file || !user) return;
+
+    // Validasi 1: Harus berkas gambar
+    if (!file.type.startsWith('image/')) {
+      setFeedback({ type: 'error', message: 'Berkas harus berupa gambar!' });
+      return;
+    }
+
+    // Validasi 2: Ukuran maksimal 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      setFeedback({ type: 'error', message: 'Ukuran foto maksimal adalah 2MB!' });
+      return;
+    }
+
+    setUploadingImage(true);
+    setFeedback(null);
+
+    try {
+      const supabase = createClient();
       
+      // Buat path unik berbasis folder UUID user & timestamp untuk mencegah cache-stale
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // 1. Unggah gambar ke Supabase Storage (bucket 'avatars')
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // 2. Ambil URL publik dari file yang baru diunggah
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // 3. Simpan URL publik ke kolom avatar_url di tabel profiles
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // 4. Salin cadangan Base64 ke localStorage agar komponen navbar ter-update instan
+      const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result; // Ini adalah wujud gambar dalam bentuk teks
-        
+        const base64String = reader.result;
         setProfileImage(base64String);
-        
-        // Simpan teks Base64 ini ke Local Storage
         localStorage.setItem('userProfilePic', base64String);
-        
-        // Tembakkan sinyal ke Navbar agar ikut berubah
         window.dispatchEvent(new Event('profilePictureUpdated'));
       };
-      
-      // Eksekusi pembacaan file
       reader.readAsDataURL(file);
+
+      // 5. Segarkan data useProfile
+      refetch();
+      setFeedback({ type: 'success', message: 'Foto profil berhasil diperbarui!' });
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      setFeedback({ type: 'error', message: err.message || 'Gagal mengunggah foto profil.' });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -263,9 +308,9 @@ export default function ProfilePage() {
           {/* Container Profil & Tombol Edit */}
           <div className="relative">
             {/* Bingkai Foto (Tidak lagi bisa diklik secara langsung) */}
-            <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
+            <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center relative ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
                {avatarSrc ? (
-                 <Image src={avatarSrc} alt="Profil" width={96} height={96} className="w-full h-full object-cover" />
+                 <img src={avatarSrc} alt="Profil" className="w-full h-full object-cover" />
                ) : (
                  <Image
                     src="/icons/person.png"
@@ -273,6 +318,17 @@ export default function ProfilePage() {
                     width={80} 
                     height={80}
                   />
+               )}
+               {uploadingImage && (
+                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
+                   <Image 
+                     src="/icons/loading.png" 
+                     alt="loading" 
+                     width={24} 
+                     height={24} 
+                     className="animate-spin" 
+                   />
+                 </div>
                )}
             </div>
             

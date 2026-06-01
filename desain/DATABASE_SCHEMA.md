@@ -152,6 +152,40 @@ END;
 $$;
 
 -- =========================================================================
+-- 7.2 TRIGGER: CALCULATE ORDER PRICE (Server-side price protection)
+-- =========================================================================
+CREATE OR REPLACE FUNCTION public.calculate_order_price()
+RETURNS TRIGGER AS $$
+DECLARE
+  base_price NUMERIC := 5000.00;
+  price_per_km NUMERIC := 2000.00;
+  helper_min_price NUMERIC := 5000.00;
+  calculated_price NUMERIC;
+BEGIN
+  IF NEW.type = 'helper' THEN
+    NEW.total_price := helper_min_price;
+  ELSE
+    -- Hitung harga: CEIL(distance_estimate) * PRICE_PER_KM
+    -- Pastikan distance_estimate bernilai positif dan valid
+    IF NEW.distance_estimate IS NULL OR NEW.distance_estimate <= 0 THEN
+      NEW.total_price := base_price;
+    ELSE
+      calculated_price := CEIL(NEW.distance_estimate) * price_per_km;
+      NEW.total_price := GREATEST(base_price, calculated_price);
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Jalankan trigger BEFORE INSERT pada tabel orders
+CREATE TRIGGER trg_calculate_order_price
+BEFORE INSERT ON public.orders
+FOR EACH ROW
+EXECUTE FUNCTION public.calculate_order_price();
+
+-- =========================================================================
 -- 8. AUTH TRIGGER
 -- =========================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()

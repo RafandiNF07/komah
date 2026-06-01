@@ -12,6 +12,7 @@ export default function DriverProfilePage() {
   const [profileImage, setProfileImage] = useState(null);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Form state — initialized from profile data
   const [namaLengkap, setNamaLengkap] = useState('');
@@ -82,23 +83,71 @@ export default function DriverProfilePage() {
     }
   }, [feedback]);
 
-  // Logika saat pengguna memilih gambar dari galeri
-  const handleImageChange = (e) => {
+  // Logika saat pengguna memilih gambar dari galeri & mengunggah ke Supabase Storage
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
+    if (!file || !user) return;
+
+    // Validasi 1: Harus berkas gambar
+    if (!file.type.startsWith('image/')) {
+      setFeedback({ type: 'error', message: 'Berkas harus berupa gambar!' });
+      return;
+    }
+
+    // Validasi 2: Ukuran maksimal 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      setFeedback({ type: 'error', message: 'Ukuran foto maksimal adalah 2MB!' });
+      return;
+    }
+
+    setUploadingImage(true);
+    setFeedback(null);
+
+    try {
+      const supabase = createClient();
       
+      // Buat path unik berbasis folder UUID user & timestamp untuk mencegah cache-stale
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+      // 1. Unggah gambar ke Supabase Storage (bucket 'avatars')
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // 2. Ambil URL publik dari file yang baru diunggah
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // 3. Simpan URL publik ke kolom avatar_url di tabel profiles
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // 4. Salin cadangan Base64 ke localStorage agar komponen navbar ter-update instan
+      const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result;
-        
         setProfileImage(base64String);
         localStorage.setItem('driverProfilePic', base64String);
-        
-        // Tembakkan sinyal ke Navbar Driver agar ikut berubah
         window.dispatchEvent(new Event('driverProfilePictureUpdated'));
       };
-      
       reader.readAsDataURL(file);
+
+      // 5. Segarkan data useProfile
+      refetch();
+      setFeedback({ type: 'success', message: 'Foto profil berhasil diperbarui!' });
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      setFeedback({ type: 'error', message: err.message || 'Gagal mengunggah foto profil.' });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -238,7 +287,7 @@ export default function DriverProfilePage() {
           />
 
           <div className="relative">
-            <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
+            <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center relative ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
                {avatarSrc ? (
                  <img src={avatarSrc} alt="Profil Driver" className="w-full h-full object-cover" />
                ) : (
@@ -248,6 +297,17 @@ export default function DriverProfilePage() {
                     width={80} 
                     height={80}
                   />
+               )}
+               {uploadingImage && (
+                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
+                   <Image 
+                     src="/icons/loading.png" 
+                     alt="loading" 
+                     width={24} 
+                     height={24} 
+                     className="animate-spin" 
+                   />
+                 </div>
                )}
             </div>
             

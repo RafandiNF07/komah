@@ -18,6 +18,7 @@ const getBadgeStyleByType = (type) => {
 
 export default function DriverEarningsPage() {
   const { user } = useProfile();
+  const userId = user?.id;
   
   // State untuk filter waktu
   const [timeFilter, setTimeFilter] = useState('Minggu Ini');
@@ -28,9 +29,13 @@ export default function DriverEarningsPage() {
   const [loading, setLoading] = useState(true);
 
   const fetchEarningsData = useCallback(async () => {
-    if (!user) return;
+    if (!userId) return;
 
-    setLoading(true);
+    // Hanya tampilkan loading jika data belum ada sama sekali (mencegah kedip/flicker)
+    if (orders.length === 0) {
+      setLoading(true);
+    }
+    
     try {
       const supabase = createClient();
       
@@ -48,7 +53,7 @@ export default function DriverEarningsPage() {
       const { data: completedData, error: completedErr } = await supabase
         .from('orders')
         .select('*')
-        .eq('driver_id', user.id)
+        .eq('driver_id', userId)
         .eq('status', 'completed')
         .gte('created_at', filterDate.toISOString())
         .order('created_at', { ascending: false });
@@ -61,7 +66,7 @@ export default function DriverEarningsPage() {
       const { data: assignedData, error: assignedErr } = await supabase
         .from('orders')
         .select('status')
-        .eq('driver_id', user.id)
+        .eq('driver_id', userId)
         .gte('created_at', filterDate.toISOString());
 
       if (assignedErr) throw assignedErr;
@@ -79,7 +84,7 @@ export default function DriverEarningsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user, timeFilter]);
+  }, [userId, timeFilter, orders.length]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -169,7 +174,13 @@ export default function DriverEarningsPage() {
             {formatRupiah(totalEarnings)}
           </p>
           <div className="mt-4 flex items-center gap-2 text-success font-body-sm text-[13px] relative z-10">
-            <span className="material-symbols-outlined text-[16px]">trending_up</span>
+            <Image 
+              src="/icons/rupiah.png" 
+              alt="rupiah" 
+              width={16} 
+              height={16} 
+              className="object-contain opacity-80" 
+            />
             <span>Periode {timeFilter}</span>
           </div>
         </div>
@@ -190,7 +201,13 @@ export default function DriverEarningsPage() {
             {orders.length} <span className="text-[16px] text-text-secondary font-normal">Trip</span>
           </p>
           <div className="mt-4 flex items-center gap-2 text-text-secondary font-body-sm text-[13px] relative z-10">
-            <span className="material-symbols-outlined text-[16px]">schedule</span>
+            <Image 
+              src="/icons/time.png" 
+              alt="time" 
+              width={16} 
+              height={16} 
+              className="object-contain opacity-60" 
+            />
             <span>Rata-rata trip aktif</span>
           </div>
         </div>

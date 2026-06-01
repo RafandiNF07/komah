@@ -28,9 +28,11 @@ export default function UserDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const userId = user?.id;
+
   // Fetch active order
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
 
     const fetchActiveOrder = async () => {
       try {
@@ -38,7 +40,7 @@ export default function UserDashboardPage() {
         const { data, error } = await supabase
           .from('orders')
           .select('*')
-          .eq('customer_id', user.id)
+          .eq('customer_id', userId)
           .in('status', ['searching', 'accepted', 'on_the_way'])
           .order('created_at', { ascending: false })
           .limit(1)
@@ -61,7 +63,7 @@ export default function UserDashboardPage() {
       .channel('active_orders_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders', filter: `customer_id=eq.${user.id}` },
+        { event: '*', schema: 'public', table: 'orders', filter: `customer_id=eq.${userId}` },
         () => {
           fetchActiveOrder();
         }
@@ -71,7 +73,7 @@ export default function UserDashboardPage() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [user]);
+  }, [userId]);
 
   return (
     <div className="w-full max-w-5xl mx-auto">
