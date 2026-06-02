@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useProfile } from '@/lib/hooks/useProfile';
-import { createClient } from '@/lib/supabase/client';
 import { generateDriverReport } from '@/lib/pdf';
 import { formatRupiah, formatDate, ORDER_TYPES } from '@/lib/constants';
+import { orderService } from '@/lib/services/orderService';
+import { translateError } from '@/lib/errors/errorHandler';
 
 // --- KAMUS TAMPILAN BADGE (Gambar & Warna) ---
 const getBadgeStyleByType = (type) => {
@@ -39,56 +40,17 @@ export default function DriverEarningsPage() {
   const fetchEarningsData = useCallback(async () => {
     if (!userId) return;
 
-    // Hanya tampilkan loading jika data belum ada sama sekali (mencegah kedip/flicker)
     if (orders.length === 0) {
       setLoading(true);
     }
     
     try {
-      const supabase = createClient();
-      
-      // Calculate filter date
-      const filterDate = new Date();
-      if (timeFilter === 'Hari Ini') {
-        filterDate.setHours(0, 0, 0, 0);
-      } else if (timeFilter === 'Minggu Ini') {
-        filterDate.setDate(filterDate.getDate() - 7);
-      } else if (timeFilter === 'Bulan Ini') {
-        filterDate.setDate(filterDate.getDate() - 30);
-      }
-
-      // Fetch completed orders
-      const { data: completedData, error: completedErr } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('driver_id', userId)
-        .eq('status', 'completed')
-        .gte('created_at', filterDate.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (completedErr) throw completedErr;
-
-      setOrders(completedData || []);
-
-      // Fetch all assigned orders for completion rate
-      const { data: assignedData, error: assignedErr } = await supabase
-        .from('orders')
-        .select('status')
-        .eq('driver_id', userId)
-        .gte('created_at', filterDate.toISOString());
-
-      if (assignedErr) throw assignedErr;
-
-      const totalCount = assignedData ? assignedData.length : 0;
-      const completedCount = completedData ? completedData.length : 0;
-
-      setCompletionStats({
-        completed: completedCount,
-        total: totalCount,
-      });
-
+      const data = await orderService.fetchEarningsData(userId, timeFilter);
+      setOrders(data.completedOrders || []);
+      setCompletionStats(data.completionStats);
     } catch (err) {
-      console.error('Error fetching earnings:', err);
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
     } finally {
       setLoading(false);
     }

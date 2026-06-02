@@ -115,10 +115,12 @@ export default function DashboardLayout({
             {loading ? (
               <div className="w-full h-full bg-surface-container-high animate-pulse rounded-full"></div>
             ) : avatarSrc ? (
-              <img
+              <Image
                 src={avatarSrc}
                 alt="Foto Profil"
-                className="object-cover w-full h-full" 
+                fill
+                unoptimized
+                className="object-cover" 
               />
             ) : (
               <Image

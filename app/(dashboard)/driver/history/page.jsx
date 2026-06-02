@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { createClient } from '@/lib/supabase/client';
 import { formatRupiah, formatDate, ORDER_TYPES, ORDER_STATUS } from '@/lib/constants';
+import { orderService } from '@/lib/services/orderService';
 
 const getServiceInfo = (type) => {
   switch (type) {
@@ -46,14 +47,7 @@ export default function DriverHistoryPage() {
   const fetchDriverHistory = useCallback(async () => {
     if (!userId) return;
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*, customer:profiles!customer_id(*)')
-        .eq('driver_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await orderService.getAllOrdersForDriver(userId);
       setOrders(data || []);
     } catch (err) {
       console.error('Error fetching driver history:', err);

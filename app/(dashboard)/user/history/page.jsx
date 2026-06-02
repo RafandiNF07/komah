@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useProfile } from '@/lib/hooks/useProfile';
-import { createClient } from '@/lib/supabase/client';
 import { generateOrderReceipt } from '@/lib/pdf';
 import { formatRupiah, formatDate, ORDER_TYPES, ORDER_STATUS, buildWhatsAppUrl } from '@/lib/constants';
+import { orderService } from '@/lib/services/orderService';
+import { translateError } from '@/lib/errors/errorHandler';
 
 export default function HistoryPage() {
   const { user } = useProfile();
@@ -42,14 +43,7 @@ export default function HistoryPage() {
   const fetchOrderHistory = useCallback(async () => {
     if (!user) return;
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*, driver:profiles!driver_id(*)')
-        .eq('customer_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await orderService.getAllOrdersForCustomer(user.id);
       setOrders(data || []);
     } catch (err) {
       console.error('Error fetching order history:', err);
@@ -91,19 +85,12 @@ export default function HistoryPage() {
   const executeCancelOrder = async (orderId) => {
     setCancellingId(orderId);
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'cancelled' })
-        .eq('id', orderId)
-        .eq('status', 'searching'); // double check security
-
-      if (error) throw error;
+      await orderService.cancelOrder(orderId);
       setFeedback({ type: 'success', message: 'Pesanan berhasil dibatalkan.' });
       fetchOrderHistory();
     } catch (err) {
-      console.error('Error cancelling order:', err);
-      setFeedback({ type: 'error', message: err.message || 'Gagal membatalkan pesanan.' });
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
     } finally {
       setCancellingId(null);
       setConfirmModal({ isOpen: false, orderId: null });

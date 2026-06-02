@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { createClient } from '@/lib/supabase/client';
 import { ORDER_TYPES, ORDER_STATUS } from '@/lib/constants';
+import { orderService } from '@/lib/services/orderService';
 
 export default function UserDashboardPage() {
   const router = useRouter();
@@ -36,17 +37,7 @@ export default function UserDashboardPage() {
 
     const fetchActiveOrder = async () => {
       try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('customer_id', userId)
-          .in('status', ['searching', 'accepted', 'on_the_way'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) throw error;
+        const data = await orderService.getActiveOrderForCustomer(userId);
         setActiveOrder(data);
       } catch (err) {
         console.error('Error fetching active order:', err);

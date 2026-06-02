@@ -269,7 +269,13 @@ export default function UnifiedProfilePage() {
           <div className="relative">
             <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center relative ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
                {avatarSrc ? (
-                 <img src={avatarSrc} alt="Profil" className="w-full h-full object-cover" />
+                 <Image
+                   src={avatarSrc}
+                   alt="Profil"
+                   fill
+                   unoptimized
+                   className="object-cover"
+                 />
                ) : (
                  <Image src="/icons/person.png" alt="person" width={80} height={80} />
                )}

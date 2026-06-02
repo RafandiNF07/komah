@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatRupiah, formatDate, ORDER_TYPES, buildWhatsAppUrl } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import { translateError } from '@/lib/errors/errorHandler';
+import { orderService } from '@/lib/services/orderService';
 
 const OrderMap = dynamic(() => import('@/components/OrderMap'), { ssr: false });
 
@@ -51,6 +52,7 @@ export default function DriverDashboardPage() {
   const [activeOrder, setActiveOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -70,57 +72,17 @@ export default function DriverDashboardPage() {
     if (!user) return;
 
     const fetchData = async () => {
+      if (!user?.id) return;
+      
+      if (!hasFetchedRef.current) {
+        setLoading(true);
+      }
+      
       try {
-        const supabase = createClient();
-        
-        // 1. Fetch Today's completed orders
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-
-        const { data: todayOrders, error: todayErr } = await supabase
-          .from('orders')
-          .select('total_price')
-          .eq('driver_id', user.id)
-          .eq('status', 'completed')
-          .gte('created_at', todayStart.toISOString());
-
-        if (todayErr) throw todayErr;
-
-        const todayEarnings = todayOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
-        const todayTrips = todayOrders.length;
-
-        // 2. Fetch Week's completed orders count
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - 7);
-
-        const { count: weekTrips, error: weekErr } = await supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-          .eq('driver_id', user.id)
-          .eq('status', 'completed')
-          .gte('created_at', weekStart.toISOString());
-
-        if (weekErr) throw weekErr;
-
-        setStats({
-          todayEarnings,
-          todayTrips,
-          weekTrips: weekTrips || 0,
-        });
-
-        // 3. Fetch active order
-        const { data: activeData, error: activeErr } = await supabase
-          .from('orders')
-          .select('*, customer:profiles!customer_id(*)')
-          .eq('driver_id', user.id)
-          .in('status', ['accepted', 'on_the_way'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (activeErr) throw activeErr;
-        setActiveOrder(activeData);
-
+        const data = await orderService.getDriverDashboardData(user.id);
+        setStats(data.stats);
+        setActiveOrder(data.activeOrder);
+        hasFetchedRef.current = true;
       } catch (err) {
         console.error('Error fetching driver dashboard data:', err);
       } finally {
@@ -151,13 +113,7 @@ export default function DriverDashboardPage() {
   const handleUpdateStatus = async (orderId, newStatus) => {
     setUpdatingStatus(true);
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-
-      if (error) throw error;
+      await orderService.updateOrderStatus(orderId, newStatus);
       setFeedback({ 
         type: 'success', 
         message: newStatus === 'completed' ? 'Pesanan telah selesai! Terima kasih.' : 'Status pesanan diperbarui!' 
@@ -178,12 +134,7 @@ export default function DriverDashboardPage() {
   const executeReleaseOrder = async () => {
     setUpdatingStatus(true);
     try {
-      const supabase = createClient();
-      const { data: success, error } = await supabase.rpc('release_order', {
-        order_uuid: activeOrder.id,
-      });
-
-      if (error) throw error;
+      const success = await orderService.releaseOrder(activeOrder.id);
 
       if (success) {
         setFeedback({ type: 'success', message: 'Pesanan berhasil dilepaskan.' });

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { formatRupiah, formatDate, ORDER_TYPES } from '@/lib/constants';
 import { translateError } from '@/lib/errors/errorHandler';
+import { orderService } from '@/lib/services/orderService';
 
 // --- LOGIKA PINTAR PENENTU TAMPILAN ---
 const getIconByType = (type) => {
@@ -43,14 +44,7 @@ export default function DriverOrdersPage() {
 
   const fetchAvailableOrders = useCallback(async () => {
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*, customer:profiles!customer_id(*)')
-        .eq('status', 'searching')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await orderService.getAvailableOrders();
       setOrders(data || []);
     } catch (err) {
       console.error('Error fetching available orders:', err);
@@ -98,14 +92,7 @@ export default function DriverOrdersPage() {
       const supabase = createClient();
 
       // Cek apakah driver saat ini sudah memiliki pesanan aktif (accepted atau on_the_way)
-      const { data: activeOrder, error: checkError } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('driver_id', user.id)
-        .in('status', ['accepted', 'on_the_way'])
-        .maybeSingle();
-
-      if (checkError) throw checkError;
+      const activeOrder = await orderService.getActiveOrderForDriver(user.id);
 
       if (activeOrder) {
         setFeedback({ 
@@ -117,11 +104,7 @@ export default function DriverOrdersPage() {
       }
 
       // RPC call to take order (anti-race condition)
-      const { data: success, error } = await supabase.rpc('take_order', {
-        order_uuid: orderId,
-      });
-
-      if (error) throw error;
+      const success = await orderService.takeOrder(orderId);
 
       if (success) {
         router.push('/driver?success=true');

@@ -5,6 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
 import { createClient } from '@/lib/supabase/client';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { registerDriverSchema } from '@/lib/validators/schemas';
+import { translateError } from '@/lib/errors/errorHandler';
 
 export default function RegisterDriverPage() {
   const router = useRouter();
@@ -16,17 +20,20 @@ export default function RegisterDriverPage() {
   const [success, setSuccess] = useState('');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  // Form fields
-  const [namaLengkap, setNamaLengkap] = useState('');
-  const [email, setEmail] = useState('');
-  const [nomorWhatsApp, setNomorWhatsApp] = useState('');
-  const [platNomor, setPlatNomor] = useState('');
-  const [ciriKendaraan, setCiriKendaraan] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(registerDriverSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      whatsappNumber: '',
+      licensePlate: '',
+      vehicleType: '',
+      password: '',
+      confirmPassword: '',
+    }
+  });
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (data) => {
     setError('');
     setSuccess('');
 
@@ -35,41 +42,21 @@ export default function RegisterDriverPage() {
       return;
     }
 
-    if (!platNomor.trim()) {
-      setError('Plat nomor kendaraan wajib diisi.');
-      return;
-    }
-
-    if (!ciriKendaraan.trim()) {
-      setError('Ciri kendaraan wajib diisi.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password minimal 6 karakter.');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Password dan konfirmasi password tidak cocok.');
-      return;
-    }
-
     setLoading(true);
 
     try {
       const supabase = createClient();
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
         options: {
           data: {
-            full_name: namaLengkap,
-            phone_number: nomorWhatsApp,
+            full_name: data.fullName,
+            phone_number: data.whatsappNumber,
             role: 'driver',
-            license_plate: platNomor,
-            vehicle_type: ciriKendaraan
+            license_plate: data.licensePlate,
+            vehicle_type: data.vehicleType
           }
         }
       });
@@ -85,7 +72,8 @@ export default function RegisterDriverPage() {
         router.push('/login');
       }, 2000);
     } catch (err) {
-      setError('Terjadi kesalahan. Silakan coba lagi.');
+      const appError = translateError(err);
+      setError(appError.message);
       setLoading(false);
     }
   };
@@ -177,7 +165,7 @@ export default function RegisterDriverPage() {
               </div>
             )}
 
-            <form className="space-y-3" onSubmit={handleRegister}>
+            <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
 
               {/* Nama Lengkap Input */}
               <div className="space-y-1">
@@ -195,15 +183,13 @@ export default function RegisterDriverPage() {
                   </div>
                   <input
                     id="fullname"
-                    name="fullname"
                     type="text"
-                    required
                     placeholder="Masukkan nama lengkap"
-                    value={namaLengkap}
-                    onChange={(e) => setNamaLengkap(e.target.value)}
+                    {...register('fullName')}
                     className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
                 </div>
+                {errors.fullName && <p className="text-[11px] text-error mt-0.5 ml-1">{errors.fullName.message}</p>}
               </div>
 
               {/* Email Students Input */}
@@ -222,15 +208,13 @@ export default function RegisterDriverPage() {
                   </div>
                   <input
                     id="email"
-                    name="email"
                     type="email"
-                    required
                     placeholder="nama@student.uin-suska.ac.id"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register('email')}
                     className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
                 </div>
+                {errors.email && <p className="text-[11px] text-error mt-0.5 ml-1">{errors.email.message}</p>}
               </div>
 
               {/* WhatsApp Input */}
@@ -249,15 +233,13 @@ export default function RegisterDriverPage() {
                   </div>
                   <input
                     id="whatsapp"
-                    name="whatsapp"
                     type="tel"
-                    required
                     placeholder="08xxxxxxxxxx"
-                    value={nomorWhatsApp}
-                    onChange={(e) => setNomorWhatsApp(e.target.value)}
+                    {...register('whatsappNumber')}
                     className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                   />
                 </div>
+                {errors.whatsappNumber && <p className="text-[11px] text-error mt-0.5 ml-1">{errors.whatsappNumber.message}</p>}
               </div>
 
               {/* Plat Nomor & Ciri Kendaraan - Layout Berdampingan */}
@@ -280,44 +262,40 @@ export default function RegisterDriverPage() {
                     </div>
                     <input
                       id="platNomor"
-                      name="platNomor"
                       type="text"
-                      required
                       placeholder="BM 1234 XX"
-                      value={platNomor}
-                      onChange={(e) => setPlatNomor(e.target.value)}
+                      {...register('licensePlate')}
                       className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                     />
                   </div>
-                </div>
+                {errors.licensePlate && <p className="text-[11px] text-error mt-0.5 ml-1">{errors.licensePlate.message}</p>}
+              </div>
 
-                {/* Ciri Kendaraan Input */}
-                <div className="space-y-1">
-                  <label className="block mb-1 font-label-mono text-[12px] md:text-[13px] text-on-surface-variant ml-1" htmlFor="ciriKendaraan">
-                    Ciri Kendaraan
-                  </label>
-                  <div className="relative flex items-center">
-                    <div className="absolute left-4 flex items-center pointer-events-none">
-                      <Image 
-                        src="/icons/motor.png" 
-                        alt="icon motor" 
-                        width={16} 
-                        height={16} 
-                        className="opacity-50" 
-                      />
-                    </div>
-                    <input
-                      id="ciriKendaraan"
-                      name="ciriKendaraan"
-                      type="text"
-                      required
-                      placeholder="Contoh: Beat Hitam / Vario Putih"
-                      value={ciriKendaraan}
-                      onChange={(e) => setCiriKendaraan(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200"
+              {/* Ciri Kendaraan Input */}
+              <div className="space-y-1">
+                <label className="block mb-1 font-label-mono text-[12px] md:text-[13px] text-on-surface-variant ml-1" htmlFor="ciriKendaraan">
+                  Ciri Kendaraan
+                </label>
+                <div className="relative flex items-center">
+                  <div className="absolute left-4 flex items-center pointer-events-none">
+                    <Image 
+                      src="/icons/motor.png" 
+                      alt="icon motor" 
+                      width={16} 
+                      height={16} 
+                      className="opacity-50" 
                     />
                   </div>
+                  <input
+                    id="ciriKendaraan"
+                    type="text"
+                    placeholder="Contoh: Beat Hitam / Vario Putih"
+                    {...register('vehicleType')}
+                    className="w-full pl-10 pr-4 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200"
+                  />
                 </div>
+                {errors.vehicleType && <p className="text-[11px] text-error mt-0.5 ml-1">{errors.vehicleType.message}</p>}
+              </div>
 
               </div>
 
@@ -339,12 +317,9 @@ export default function RegisterDriverPage() {
                     </div>
                     <input
                       id="password"
-                      name="password"
                       type={showPassword ? 'text' : 'password'}
-                      required
                       placeholder="Masukkan password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      {...register('password')}
                       className="w-full pl-10 pr-10 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                     />
                     <button
@@ -367,6 +342,7 @@ export default function RegisterDriverPage() {
                       )}
                     </button>
                   </div>
+                  {errors.password && <p className="text-[11px] text-error mt-0.5 ml-1">{errors.password.message}</p>}
                 </div>
 
                 {/* Confirm Password Input */}
@@ -385,12 +361,9 @@ export default function RegisterDriverPage() {
                     </div>
                     <input
                       id="confirmPassword"
-                      name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
-                      required
                       placeholder="Ulangi password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      {...register('confirmPassword')}
                       className="w-full pl-10 pr-10 py-2.5 bg-surface-container-high border border-outline-variant/50 rounded-xl text-on-surface placeholder:text-outline/50 font-body-md text-[13px] shadow-[inset_0_2px_4px_0_rgba(0,0,0,0.3)] focus:outline-none focus:border-tertiary focus:ring-0 transition-all duration-200 [&:-webkit-autofill]:bg-transparent [&:-webkit-autofill]:[-webkit-text-fill-color:#fff] [&:-webkit-autofill]:[transition:background-color_9999s_ease-in-out_0s,border-color_0.2s_ease-in-out_0s]"
                     />
                     <button
@@ -413,6 +386,7 @@ export default function RegisterDriverPage() {
                       )}
                     </button>
                   </div>
+                  {errors.confirmPassword && <p className="text-[11px] text-error mt-0.5 ml-1">{errors.confirmPassword.message}</p>}
                 </div>
 
               </div>
