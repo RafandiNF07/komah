@@ -7,6 +7,7 @@ import { useProfile } from '@/lib/hooks/useProfile';
 import { createClient } from '@/lib/supabase/client';
 import { formatRupiah, formatDate, ORDER_TYPES, buildWhatsAppUrl } from '@/lib/constants';
 import dynamic from 'next/dynamic';
+import { translateError } from '@/lib/errors/errorHandler';
 
 const OrderMap = dynamic(() => import('@/components/OrderMap'), { ssr: false });
 
@@ -29,7 +30,9 @@ export default function DriverDashboardPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('success') === 'true') {
-        setFeedback({ type: 'success', message: 'Pesanan berhasil diambil! Silakan hubungi pemesan.' });
+        setTimeout(() => {
+          setFeedback({ type: 'success', message: 'Pesanan berhasil diambil! Silakan hubungi pemesan.' });
+        }, 0);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
@@ -160,8 +163,8 @@ export default function DriverDashboardPage() {
         message: newStatus === 'completed' ? 'Pesanan telah selesai! Terima kasih.' : 'Status pesanan diperbarui!' 
       });
     } catch (err) {
-      console.error('Error updating order status:', err);
-      setFeedback({ type: 'error', message: err.message || 'Gagal mengubah status pesanan.' });
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
     } finally {
       setUpdatingStatus(false);
     }
@@ -188,8 +191,8 @@ export default function DriverDashboardPage() {
         setFeedback({ type: 'error', message: 'Gagal melepaskan pesanan. Pesanan mungkin sudah diproses atau diselesaikan.' });
       }
     } catch (err) {
-      console.error('Error releasing order:', err);
-      setFeedback({ type: 'error', message: err.message || 'Gagal melepaskan pesanan.' });
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
     } finally {
       setUpdatingStatus(false);
       setConfirmModal({ isOpen: false });

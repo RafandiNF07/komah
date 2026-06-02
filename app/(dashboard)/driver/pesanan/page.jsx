@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { formatRupiah, formatDate, ORDER_TYPES } from '@/lib/constants';
+import { translateError } from '@/lib/errors/errorHandler';
 
 // --- LOGIKA PINTAR PENENTU TAMPILAN ---
 const getIconByType = (type) => {
@@ -59,7 +60,9 @@ export default function DriverOrdersPage() {
   }, []);
 
   useEffect(() => {
-    fetchAvailableOrders();
+    setTimeout(() => {
+      fetchAvailableOrders();
+    }, 0);
 
     // Setup realtime subscription
     const supabase = createClient();
@@ -130,8 +133,8 @@ export default function DriverOrdersPage() {
         fetchAvailableOrders();
       }
     } catch (err) {
-      console.error('Error taking order:', err);
-      setFeedback({ type: 'error', message: err.message || 'Gagal mengambil pesanan.' });
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
     } finally {
       setTakingOrderId(null);
     }

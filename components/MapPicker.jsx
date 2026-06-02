@@ -137,19 +137,25 @@ export default function MapPicker({
   // Sync search queries with geocoded addresses
   useEffect(() => {
     if (pickup) {
-      setPickupQuery(pickup.address);
+      setTimeout(() => {
+        setPickupQuery(pickup.address);
+      }, 0);
     }
   }, [pickup]);
 
   useEffect(() => {
     if (destination) {
-      setDestinationQuery(destination.address);
+      setTimeout(() => {
+        setDestinationQuery(destination.address);
+      }, 0);
     }
   }, [destination]);
 
   useEffect(() => {
     if (address) {
-      setPickupQuery(address);
+      setTimeout(() => {
+        setPickupQuery(address);
+      }, 0);
     }
   }, [address]);
 

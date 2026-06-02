@@ -6,6 +6,7 @@ import { useProfile } from '@/lib/hooks/useProfile';
 import { profileService } from '@/lib/services/profileService';
 import ProfileSkeleton from '@/components/profile/ProfileSkeleton';
 import RegisterDriverModal from '@/components/profile/RegisterDriverModal';
+import { translateError } from '@/lib/errors/errorHandler';
 
 export default function UnifiedProfilePage() {
   const { profile, user, loading, refetch } = useProfile();
@@ -51,7 +52,11 @@ export default function UnifiedProfilePage() {
   useEffect(() => {
     if (profilePicKey) {
       const savedImage = localStorage.getItem(profilePicKey);
-      if (savedImage) setProfileImage(savedImage);
+      if (savedImage) {
+        setTimeout(() => {
+          setProfileImage(savedImage);
+        }, 0);
+      }
     }
   }, [profilePicKey]);
 
@@ -127,8 +132,8 @@ export default function UnifiedProfilePage() {
         window.location.href = '/driver';
       }, 1000);
     } catch (err) {
-      console.error('Error registering driver:', err);
-      setFeedback({ type: 'error', message: 'Gagal mendaftar driver. Silakan coba lagi.' });
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
       setSwitchingRole(false);
     }
   };
@@ -143,8 +148,9 @@ export default function UnifiedProfilePage() {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      setFeedback({ type: 'error', message: 'Ukuran foto maksimal adalah 2MB!' });
+    // Naikkan batas ukuran input asli karena kita mengompresnya di klien secara otomatis
+    if (file.size > 10 * 1024 * 1024) {
+      setFeedback({ type: 'error', message: 'Ukuran berkas asli maksimal adalah 10MB!' });
       return;
     }
 
@@ -152,23 +158,24 @@ export default function UnifiedProfilePage() {
     setFeedback(null);
 
     try {
-      const publicUrl = await profileService.uploadAvatar(user.id, file);
+      const { compressAndSquareImage } = await import('@/lib/utils/imageCompressor');
+      const { base64, blob } = await compressAndSquareImage(file, 256);
 
-      // Caching base64 to localStorage for instant UI updates
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setProfileImage(base64String);
-        localStorage.setItem(profilePicKey, base64String);
-        window.dispatchEvent(new Event(profilePicEvent));
-      };
-      reader.readAsDataURL(file);
+      // Buat file baru terkompresi berukuran sangat kecil (~10KB) dan berdimensi persegi (square)
+      const compressedFile = new File([blob], `avatar-${user.id}.webp`, { type: 'image/webp' });
+
+      const publicUrl = await profileService.uploadAvatar(user.id, compressedFile);
+
+      // Simpan Base64 berukuran sangat kecil ke localStorage
+      setProfileImage(base64);
+      localStorage.setItem(profilePicKey, base64);
+      window.dispatchEvent(new Event(profilePicEvent));
 
       refetch();
       setFeedback({ type: 'success', message: 'Foto profil berhasil diperbarui!' });
     } catch (err) {
-      console.error('Error uploading avatar:', err);
-      setFeedback({ type: 'error', message: err.message || 'Gagal mengunggah foto profil.' });
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
     } finally {
       setUploadingImage(false);
     }
@@ -204,8 +211,8 @@ export default function UnifiedProfilePage() {
       refetch();
       window.dispatchEvent(new Event(profilePicEvent));
     } catch (err) {
-      console.error('Save profile error:', err);
-      setFeedback({ type: 'error', message: 'Gagal menyimpan profil. Silakan coba lagi.' });
+      const appError = translateError(err);
+      setFeedback({ type: appError.severity, message: appError.message });
     } finally {
       setSaving(false);
     }

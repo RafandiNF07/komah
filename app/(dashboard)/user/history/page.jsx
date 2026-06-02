@@ -22,7 +22,9 @@ export default function HistoryPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('success') === 'true') {
-        setFeedback({ type: 'success', message: 'Driver sedang dicarikan! Mohon tunggu.' });
+        setTimeout(() => {
+          setFeedback({ type: 'success', message: 'Driver sedang dicarikan! Mohon tunggu.' });
+        }, 0);
         // Bersihkan query string agar tidak memicu kembali saat di-refresh
         window.history.replaceState({}, document.title, window.location.pathname);
       }

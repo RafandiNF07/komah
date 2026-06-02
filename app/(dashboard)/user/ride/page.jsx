@@ -7,6 +7,7 @@ import { useOrderForm } from '@/lib/hooks/useOrderForm';
 import { orderService } from '@/lib/services/orderService';
 import { OrderHeader } from '@/components/order/OrderHeader';
 import { OrderSummaryCard } from '@/components/order/OrderSummaryCard';
+import { translateError } from '@/lib/errors/errorHandler';
 
 // Import MapPicker dynamically to prevent SSR/Leaflet window not found error
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
@@ -66,8 +67,8 @@ export default function RideOrderPage() {
 
       router.push('/user/history?success=true');
     } catch (err) {
-      console.error('Insert order error:', err);
-      setError(err.message || 'Gagal membuat pesanan. Silakan coba lagi.');
+      const appError = translateError(err);
+      setError(appError.message);
     } finally {
       setIsLoading(false);
     }
