@@ -42,3 +42,22 @@
   background-image: radial-gradient(circle at center, rgba(47, 74, 112, 0.1) 0, transparent 100%);
 }
 
+/* Utilitas tombol premium glowing terpadu */
+@utility btn-primary-glowing {
+  @apply flex-1 py-3 bg-tertiary hover:bg-tertiary/90 text-on-tertiary text-[14px] font-bold rounded-xl shadow-lg shadow-tertiary/20 transform hover:-translate-y-1 hover:shadow-[0_0_15px_rgba(240,192,82,0.4)] active:scale-[0.98] transition-all duration-300 disabled:opacity-50;
+}
+
+@utility btn-close-glowing {
+  @apply flex-1 py-3 bg-close text-white font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-close/30 transition-all font-label-mono text-[13px] disabled:opacity-50;
+}
+
+@utility btn-secondary-glowing {
+  @apply w-full py-3 bg-secondary-container text-on-secondary-container font-bold rounded-xl shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-secondary-container/30 active:scale-95 font-label-mono text-[13px] flex items-center justify-center gap-2;
+}
+
+/* Overlay modal */
+@utility modal-dark-overlay {
+  @apply fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm;
+}
+
+
