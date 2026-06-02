@@ -22,14 +22,14 @@ export default function DriverProfilePage() {
 
   // Mode switching state
   const [switchingRole, setSwitchingRole] = useState(false);
-  
+
   // Referensi untuk memicu klik pada input file tersembunyi
   const fileInputRef = useRef(null);
 
   // Switch role handler (Driver ke Customer)
   const handleSwitchRole = async () => {
     if (!user || !profile) return;
-    
+
     setSwitchingRole(true);
     try {
       const supabase = createClient();
@@ -37,9 +37,9 @@ export default function DriverProfilePage() {
         .from('profiles')
         .update({ role: 'customer' })
         .eq('id', user.id);
-        
+
       if (error) throw error;
-      
+
       setFeedback({ type: 'success', message: 'Berhasil beralih ke Mode Pelanggan!' });
       setTimeout(() => {
         window.location.href = '/user';
@@ -83,7 +83,7 @@ export default function DriverProfilePage() {
     }
   }, [feedback]);
 
-  // Logika saat pengguna memilih gambar dari galeri & mengunggah ke Supabase Storage
+  // Logika saat pengguna memilih gambar dari galeri & mengunggah ke Cloudinary via API Route
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !user) return;
@@ -104,28 +104,36 @@ export default function DriverProfilePage() {
     setFeedback(null);
 
     try {
+      // 1. Siapkan FormData untuk dikirim ke API Route Cloudinary
+      const formData = new FormData();
+      formData.append('foto', file);
+      formData.append('role', 'driver'); // Memastikan masuk ke folder driver_profiles
+
+      // Kirim URL foto lama jika ada untuk dihapus otomatis dari Cloudinary
+      if (profile?.avatar_url) {
+        formData.append('oldImageUrl', profile.avatar_url);
+      }
+
+      // 2. Tembak ke API Route upload internal
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const uploadData = await uploadResponse.json();
+
+      if (!uploadResponse.ok) {
+        throw new Error(uploadData.error || 'Gagal mengunggah foto ke Cloudinary.');
+      }
+
+      // Ambil URL aman yang dihasilkan oleh Cloudinary
+      const secureCloudinaryUrl = uploadData.imageUrl;
+
+      // 3. Simpan URL Cloudinary tersebut ke kolom avatar_url di tabel profiles Supabase
       const supabase = createClient();
-      
-      // Buat path unik berbasis folder UUID user & timestamp untuk mencegah cache-stale
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-
-      // 1. Unggah gambar ke Supabase Storage (bucket 'avatars')
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // 2. Ambil URL publik dari file yang baru diunggah
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      // 3. Simpan URL publik ke kolom avatar_url di tabel profiles
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: secureCloudinaryUrl })
         .eq('id', user.id);
 
       if (updateError) throw updateError;
@@ -151,10 +159,10 @@ export default function DriverProfilePage() {
     }
   };
 
-  // Handler simpan profil ke Supabase
+  // Handler simpan profil teks ke Supabase
   const handleSave = async () => {
     if (!user) return;
-    
+
     if (!platNomor.trim()) {
       setFeedback({ type: 'error', message: 'Plat nomor kendaraan wajib diisi.' });
       return;
@@ -252,14 +260,13 @@ export default function DriverProfilePage() {
 
   return (
     <div className="w-full max-w-2xl mx-auto pb-4">
-      
+
       {/* Feedback Toast */}
       {feedback && (
-        <div className={`fixed top-4 right-4 z-[200] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${
-          feedback.type === 'success' 
-            ? 'bg-success/90 text-on-tertiary' 
+        <div className={`fixed top-4 right-4 z-[200] px-4 py-3 rounded-xl shadow-lg text-[13px] font-label-mono transition-all duration-300 ${feedback.type === 'success'
+            ? 'bg-success/90 text-on-tertiary'
             : 'bg-cancel/90 text-on-tertiary'
-        }`}>
+          }`}>
           {feedback.message}
         </div>
       )}
@@ -274,74 +281,74 @@ export default function DriverProfilePage() {
 
       {/* Card Profil Utama */}
       <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-5 md:p-6 shadow-md">
-        
+
         {/* FOTO PROFIL */}
         <div className="flex flex-col items-center mb-6 pb-6 border-b border-outline-variant/30">
-          
-          <input 
-            type="file" 
-            accept="image/*" 
-            ref={fileInputRef} 
-            onChange={handleImageChange} 
-            className="hidden" 
+
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+            className="hidden"
           />
 
           <div className="relative">
             <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center relative ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
-               {avatarSrc ? (
-                 <img src={avatarSrc} alt="Profil Driver" className="w-full h-full object-cover" />
-               ) : (
-                 <Image
-                    src="/icons/person.png"
-                    alt="person"
-                    width={80} 
-                    height={80}
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="Profil Driver" className="w-full h-full object-cover" />
+              ) : (
+                <Image
+                  src="/icons/person.png"
+                  alt="person"
+                  width={80}
+                  height={80}
+                />
+              )}
+              {uploadingImage && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
+                  <Image
+                    src="/icons/loading.png"
+                    alt="loading"
+                    width={24}
+                    height={24}
+                    className="animate-spin"
                   />
-               )}
-               {uploadingImage && (
-                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
-                   <Image 
-                     src="/icons/loading.png" 
-                     alt="loading" 
-                     width={24} 
-                     height={24} 
-                     className="animate-spin" 
-                   />
-                 </div>
-               )}
+                </div>
+              )}
             </div>
-            
+
             {isEditing && (
-              <button 
+              <button
                 onClick={() => fileInputRef.current.click()}
                 className="absolute bottom-0 right-0 w-8 h-8 bg-tertiary rounded-full flex items-center justify-center shadow-lg border-2 border-surface transition-transform hover:scale-110 active:scale-95"
                 title="Ganti Foto Profil"
               >
-                <Image 
-                  src="/icons/pencil.png" 
-                  alt="Ubah Foto" 
-                  width={14} 
-                  height={14} 
+                <Image
+                  src="/icons/pencil.png"
+                  alt="Ubah Foto"
+                  width={14}
+                  height={14}
                   className="object-contain"
                 />
               </button>
             )}
           </div>
-          
+
           <h2 className="font-headline-md text-[20px] font-bold text-text-primary mt-3">{profile?.full_name || 'Driver'}</h2>
           <p className="font-label-mono text-[12px] text-tertiary mt-0.5 font-bold">Mitra Driver KOMAH</p>
-          
+
         </div>
 
         {/* Form Data Diri */}
         <div className="space-y-4">
-          
+
           {/* Baris 1: Nama & WA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nama Lengkap</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={namaLengkap}
                 onChange={(e) => setNamaLengkap(e.target.value)}
                 disabled={!isEditing}
@@ -351,8 +358,8 @@ export default function DriverProfilePage() {
 
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nomor WhatsApp</label>
-              <input 
-                type="tel" 
+              <input
+                type="tel"
                 value={nomorWA}
                 onChange={(e) => setNomorWA(e.target.value)}
                 disabled={!isEditing}
@@ -368,14 +375,14 @@ export default function DriverProfilePage() {
               <Image
                 src="/icons/email.png"
                 alt="email"
-                width={20} 
+                width={20}
                 height={20}
                 className="absolute left-3"
               />
-              <input 
-                type="email" 
-                value={user?.email || ''} 
-                disabled 
+              <input
+                type="email"
+                value={user?.email || ''}
+                disabled
                 className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/20 rounded-xl text-text-secondary font-body-md text-[13px] cursor-not-allowed"
               />
             </div>
@@ -385,8 +392,8 @@ export default function DriverProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Plat Nomor Kendaraan</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={platNomor}
                 onChange={(e) => setPlatNomor(e.target.value)}
                 disabled={!isEditing}
@@ -396,8 +403,8 @@ export default function DriverProfilePage() {
 
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Jenis Kendaraan</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={jenisKendaraan}
                 onChange={(e) => setJenisKendaraan(e.target.value)}
                 disabled={!isEditing}
@@ -410,14 +417,14 @@ export default function DriverProfilePage() {
           <div className="pt-4 mt-2 border-t border-outline-variant/30 flex gap-3">
             {isEditing ? (
               <>
-                <button 
+                <button
                   onClick={handleCancel}
                   disabled={saving}
                   className="flex-[1] py-3 bg-close text-primary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-close/30 transition-all font-label-mono text-[13px] disabled:opacity-50"
                 >
                   Batal
                 </button>
-                <button 
+                <button
                   onClick={handleSave}
                   disabled={saving}
                   className="flex-[2] py-3 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/30 transition-all font-label-mono text-[13px] disabled:opacity-50"
@@ -426,17 +433,17 @@ export default function DriverProfilePage() {
                 </button>
               </>
             ) : (
-              <button 
+              <button
                 onClick={() => setIsEditing(true)}
                 className="group w-full py-3 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-tertiary/30 active:scale-95 font-label-mono text-[14px] flex items-center justify-center gap-2.5"
               >
-              <Image
-                src="/icons/edit1.png"
-                alt="edit"
-                width={20} 
-                height={20}
-                className="object-contain transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110"
-              />
+                <Image
+                  src="/icons/edit1.png"
+                  alt="edit"
+                  width={20}
+                  height={20}
+                  className="object-contain transition-transform duration-300 group-hover:-rotate-12 group-hover:scale-110"
+                />
                 <span>Edit Profil</span>
               </button>
             )}
@@ -451,7 +458,7 @@ export default function DriverProfilePage() {
           Beralih Peran (Mode Akun)
         </h3>
         <p className="font-body-sm text-[13px] text-text-secondary mb-4 leading-relaxed">
-          Anda saat ini masuk sebagai <strong>Mitra Driver</strong>. 
+          Anda saat ini masuk sebagai <strong>Mitra Driver</strong>.
           Ingin melakukan pemesanan ojek, pesan makanan, atau kirim barang? Beralihlah ke mode <strong>Pelanggan</strong>.
         </p>
         <button
@@ -463,11 +470,11 @@ export default function DriverProfilePage() {
             <span>Memproses...</span>
           ) : (
             <>
-              <Image 
-                src="/icons/person.png" 
-                alt="switch" 
-                width={18} 
-                height={18} 
+              <Image
+                src="/icons/person.png"
+                alt="switch"
+                width={18}
+                height={18}
                 className="transition-transform duration-300 group-hover:scale-110"
               />
               <span>Beralih ke Mode Pelanggan</span>
