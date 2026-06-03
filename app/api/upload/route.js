@@ -72,12 +72,16 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Ukuran foto maksimal adalah 2MB.' }, { status: 400 });
         }
 
-        // --- 3. AMBIL URL FOTO LAMA LANGSUNG DARI DATABASE (Lebih Aman dari Manipulasi Client) ---
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('avatar_url')
             .eq('id', user.id)
             .single();
+
+        if (profileError) {
+            console.error('Database Select Error:', profileError);
+            return NextResponse.json({ error: 'Gagal mengambil data profil.' }, { status: 500 });
+        }
 
         const oldImageUrl = profile?.avatar_url;
 
