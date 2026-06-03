@@ -319,6 +319,43 @@ export default function HistoryPage() {
                       <p className="font-label-mono text-[10px] text-outline mt-1 hidden md:block uppercase">{order.order_number}</p>
                     </div>
                   </div>
+
+                  {/* Driver Profile Information */}
+                  {order.driver && (
+                    <div className="mt-4 p-3 bg-surface-container rounded-xl border border-outline-variant/20 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center overflow-hidden relative">
+                        {order.driver.avatar_url ? (
+                          <Image 
+                            src={order.driver.avatar_url} 
+                            alt="Foto Profil Driver" 
+                            width={40} 
+                            height={40} 
+                            unoptimized
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <Image 
+                            src="/icons/person.png" 
+                            alt="person" 
+                            width={20} 
+                            height={20} 
+                            className="object-contain"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-label-mono text-[9px] text-text-secondary leading-none uppercase">Driver Mitra KOMAH</p>
+                        <p className="font-headline-sm text-[14px] font-bold text-text-primary mt-1 truncate">
+                          {order.driver.full_name}
+                        </p>
+                        {order.driver.vehicle_type && (
+                          <p className="font-body-sm text-[11px] text-text-secondary mt-0.5">
+                            {order.driver.vehicle_type} • {order.driver.license_plate}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Action Buttons for Active Orders */}
                   {isActive && (
