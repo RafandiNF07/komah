@@ -1,10 +1,22 @@
-# Dokumentasi Arsitektur & Alur Kerja Aplikasi KOMAH
+# Panduan Developer & Transfer Knowledge Proyek KOMAH
 
-Dokumen ini menjelaskan arsitektur sistem, cara kerja program secara client-side query (Supabase Client), manajemen cache profil, dan bagaimana suatu aksi di antarmuka pengguna (UI) mengalir hingga disimpan ke dalam basis data (database).
+Dokumen ini dirancang sebagai panduan lengkap serah-terima (*developer handover*) agar anggota tim baru atau pengembang baru dapat langsung memahami struktur proyek, menemukan file penting dengan cepat, memahami alur kerja fitur, dan melanjutkan pengembangan proyek KOMAH secara mandiri.
 
 ---
 
-## 1. Ikhtisar Arsitektur (Architecture Overview)
+## Daftar Isi
+1. [Arsitektur Umum](#1-arsitektur-umum)
+2. [Peta Folder & Struktur Direktori](#2-peta-folder--struktur-direktori)
+3. [Daftar File Penting (Core Files)](#3-daftar-file-penting-core-files)
+4. [Entry Point & Komponen Per Fitur](#4-entry-point--komponen-per-fitur)
+5. [Cara Kerja Hook `useProfile` & Cache](#5-cara-kerja-hook-useprofile--cache)
+6. [Alur Aksi UI ke Database (Sequence Diagrams)](#6-alur-aksi-ui-ke-database-sequence-diagrams)
+7. [Hal-Hal yang Wajib Diwaspadai](#7-hal-hal-yang-wajib-diwaspadai)
+8. [Log Pembersihan Kode (Dead Code Cleanup Log)](#8-log-pembersihan-kode-dead-code-cleanup-log)
+
+---
+
+## 1. Arsitektur Umum
 
 KOMAH menggunakan arsitektur **Next.js (App Router)** dengan pola **Client-Side Query & State Management** terpusat menggunakan layanan backend-as-a-service **Supabase** dan penyimpanan gambar **Cloudinary**:
 
@@ -23,11 +35,97 @@ graph TD
 
 ---
 
-## 2. Cara Kerja Hook `useProfile` & Sinkronisasi Cache
+## 2. Peta Folder & Struktur Direktori
 
-Untuk performa instan tanpa membebani database, profil pengguna dikelola oleh hook [useProfile.js](file:///lib/hooks/useProfile.js):
+Berikut adalah struktur folder utama proyek KOMAH yang perlu Anda ketahui sebelum menulis/mengubah kode:
 
-1.  **Inisialisasi Aman (Bebas Hydration Mismatch)**:
+```text
+├── app/                             # Folder Utama Aplikasi (Next.js App Router)
+│   ├── (auth)/                      # Grouping Rute Autentikasi (Tidak muncul di URL)
+│   │   ├── login/                   # Halaman Login
+│   │   └── register/                # Halaman Pendaftaran Akun (Pilih Peran)
+│   │       ├── driver/              # Form Pendaftaran Akun Driver
+│   │       └── pengguna/            # Form Pendaftaran Akun Pelanggan (Customer)
+│   ├── (dashboard)/                 # Grouping Rute Dashboard (Diproteksi Middleware)
+│   │   ├── driver/                  # Halaman & Fitur khusus Driver
+│   │   │   ├── history/             # Riwayat tarikan driver
+│   │   │   ├── pendapatan/          # Ringkasan saldo & pendapatan driver
+│   │   │   ├── pesanan/             # Layanan navigasi peta & orderan aktif
+│   │   │   ├── profile/             # Pengaturan data diri & upload foto driver
+│   │   │   ├── layout.js            # Sidebar, Navigasi, & Pop-up logout driver
+│   │   │   └── page.jsx             # Dashboard utama driver (Order berjalan & statistik)
+│   │   └── user/                    # Halaman & Fitur khusus Pelanggan
+│   │       ├── delivery/            # Fitur pemesanan pengiriman barang
+│   │       ├── food/                # Fitur pemesanan makanan (KOMAH Food)
+│   │       ├── helper/              # Fitur pemesanan jasa helper/asisten
+│   │       ├── history/             # Riwayat pesanan aktif & selesai (Cetak Struk)
+│   │       ├── profile/             # Pengaturan data diri & upload foto pelanggan
+│   │       ├── ride/                # Fitur pemesanan ojek (Antar/Jemput)
+│   │       ├── layout.js            # Sidebar, Navigasi, & Pop-up logout pelanggan
+│   │       └── page.jsx             # Halaman pilihan menu utama pelanggan
+│   ├── (public)/                    # Grouping Halaman Publik
+│   │   └── page.js                  # Halaman Landing Page Utama (komah.com)
+│   ├── api/                         # Endpoint API Internal
+│   │   └── upload/                  # Route handler upload/delete foto profil di Cloudinary
+│   ├── globals.css                  # CSS Global Proyek (Menggunakan Tailwind CSS v4)
+│   └── layout.js                    # Root Layout pembungkus aplikasi
+├── components/                      # Komponen UI Reusable
+│   ├── OrderMap.jsx                 # Komponen Peta Leaflet untuk melacak lokasi order
+│   └── MapPicker.jsx                # Komponen Pemilih koordinat lokasi jemput/tujuan
+├── lib/                             # Folder Utilitas & Konfigurasi
+│   ├── hooks/                       # Custom React Hooks
+│   │   └── useProfile.js            # Hook pengelola cache profil, session, & auth
+│   ├── supabase/                    # Inisialisasi Klien Supabase
+│   │   ├── client.js                # Browser Client (untuk komponen 'use client')
+│   │   └── server.js                # Server Client (untuk API route & Server Components)
+│   ├── constants.js                 # Data statis (tarif, koordinat UIN, status order)
+│   ├── osrm.js                      # Helper kalkulasi rute jalan raya (jarak & rute polyline)
+│   └── pdf.js                       # Helper pembuat receipt struk pesanan PDF (jspdf)
+├── middleware.js                    # Proteksi rute & pengalihan login otomatis (auth guard)
+├── package.json                     # Konfigurasi dependensi npm
+└── dokumentasi.md                   # Dokumentasi program (Dokumen ini)
+```
+
+---
+
+## 3. Daftar File Penting (Core Files)
+
+Jika Anda ingin memodifikasi atau memperbaiki bagian penting dari sistem, buka file-file berikut:
+
+1.  **[lib/hooks/useProfile.js](file:///lib/hooks/useProfile.js)**
+    *   *Peran*: Mengelola caching profil, sesi autentikasi, dan memicu pembaruan data secara asinkron pasca-render. Modifikasi file ini jika Anda ingin mengubah cara data profil diambil, disimpan ke cache, atau dibersihkan saat logout.
+2.  **[app/api/upload/route.js](file:///app/api/upload/route.js)**
+    *   *Peran*: Gerbang API internal untuk otentikasi user, pembersihan foto lama, pengunggahan foto baru ke Cloudinary, dan penghapusan foto secara aman di database. Buka file ini jika terjadi kegagalan proses di server saat pengunggahan gambar.
+3.  **[middleware.js](file:///middleware.js)**
+    *   *Peran*: Mengatur *route guard*. Menentukan apakah pengguna yang belum login boleh membuka halaman tertentu, dan mengarahkan pengguna ke halaman yang tepat sesuai peran (`driver` ke `/driver`, `customer` ke `/user`).
+4.  **[lib/constants.js](file:///lib/constants.js)**
+    *   *Peran*: Pusat konfigurasi aplikasi. Berisi harga dasar tarif, tarif per km, koordinat default peta kampus UIN Suska Riau, format rupiah, formatting tanggal, dan helper pembuatan URL chat WhatsApp (`buildWhatsAppUrl`).
+5.  **[components/OrderMap.jsx](file:///components/OrderMap.jsx)**
+    *   *Peran*: Komponen peta Leaflet utama yang merender penjemputan, tujuan, rute jalan raya, dan fit-bounds otomatis. Modifikasi ini jika Anda ingin mengubah tampilan marker atau interaksi peta.
+
+---
+
+## 4. Entry Point & Komponen Per Fitur
+
+Gunakan tabel pemetaan di bawah ini untuk mencari file program berdasarkan fitur yang ingin Anda ubah atau pelajari:
+
+| Nama Fitur | File Halaman Utama | Komponen Pendukung | Tabel Database | Deskripsi Alur Fitur |
+| :--- | :--- | :--- | :--- | :--- |
+| **Pemesanan Ojek (Antar/Jemput)** | [ride/page.jsx](file:///app/(dashboard)/user/ride/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput nama lokasi & titik koordinat peta $\rightarrow$ hitung jarak & harga $\rightarrow$ simpan ke database dengan status `searching`. |
+| **Pemesanan Pengiriman (KOMAH Delivery)** | [delivery/page.jsx](file:///app/(dashboard)/user/delivery/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput detail barang, nomor WA penerima, titik jemput/tujuan $\rightarrow$ kalkulasi tarif $\rightarrow$ simpan pesanan. |
+| **Pemesanan Makanan (KOMAH Food)** | [food/page.jsx](file:///app/(dashboard)/user/food/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput detail makanan/resto $\rightarrow$ pilih lokasi pengantaran $\rightarrow$ simpan pesanan. |
+| **Pemesanan Jasa (KOMAH Helper)** | [helper/page.jsx](file:///app/(dashboard)/user/helper/page.jsx) | `constants.js` (tarif minimum) | `orders` | Menginput deskripsi tugas jasa/bantuan $\rightarrow$ tarif awal dihitung minimum Rp5.000 (selanjutnya bisa dinego via WA) $\rightarrow$ simpan pesanan. |
+| **Riwayat & Cetak Struk (Pelanggan)** | [history/page.jsx](file:///app/(dashboard)/user/history/page.jsx) | `lib/pdf.js` (`generateOrderReceipt`) | `orders`, `profiles` | Mengambil data order berdasarkan ID Pelanggan $\rightarrow$ kelompokkan pesanan aktif dan selesai $\rightarrow$ unduh struk pesanan PDF menggunakan jsPDF. |
+| **Pengaturan Profil & Foto (Pelanggan & Driver)** | [profile/page.jsx (User)](file:///app/(dashboard)/user/profile/page.jsx) & [profile/page.jsx (Driver)](file:///app/(dashboard)/driver/profile/page.jsx) | `lib/hooks/useProfile.js`, `/api/upload` | `profiles` | Mengubah nama/nomor WA $\rightarrow$ memicu input file upload profil $\rightarrow$ tembak API Route $\rightarrow$ Simpan di profiles. |
+| **Dashboard Peta & Ambil Order (Driver)** | [page.jsx (Driver)](file:///app/(dashboard)/driver/page.jsx) & [pesanan/page.jsx](file:///app/(dashboard)/driver/pesanan/page.jsx) | `OrderMap.jsx` | `orders`, `profiles` | Berlangganan realtime data order berstatus `searching` $\rightarrow$ RPC `take_order` atau `release_order` $\rightarrow$ perbarui status pesanan menjadi `accepted`, `on_the_way`, atau `completed`. |
+
+---
+
+## 5. Cara Kerja Hook `useProfile` & Cache
+
+Manajemen cache profil diatur menggunakan pola SWR (Stale-While-Revalidate):
+
+1.  **Inisialisasi Bebas Hydration Mismatch**:
     Untuk menghindari kesalahan perbedaan render HTML server vs client, state `profile` diinisialisasi `null` dan `loading` diinisialisasi `true`.
 2.  **Pemuatan Asinkron (`useEffect`)**:
     Setelah komponen berhasil dimuat di client (mount), `useEffect` membaca cache dari `localStorage` (`komah_profile_cache`) di dalam `setTimeout(..., 0)` dan memperbarui state secara asinkron.
@@ -38,11 +136,9 @@ Untuk performa instan tanpa membebani database, profil pengguna dikelola oleh ho
 
 ---
 
-## 3. Alur Kerja Aksi UI ke Database (UI Action to Database Flow)
+## 6. Alur Aksi UI ke Database (Sequence Diagrams)
 
-Berikut adalah 4 contoh skenario bagaimana interaksi pengguna mengalir dari komponen UI hingga tersimpan secara permanen di database:
-
-### A. Alur Registrasi Akun Baru
+### A. Alur Registrasi Akun Baru (Tanpa Auto-Login Terobos)
 
 ```mermaid
 sequenceDiagram
@@ -58,11 +154,6 @@ sequenceDiagram
     Note over User: Bersihkan seluruh localStorage cache
     User->>User: Alihkan (Hard Navigation) ke /login
 ```
-
-1.  **UI Action**: Pengguna mengisi form di `/register/pengguna` atau `/register/driver` dan menekan **"Daftar"**.
-2.  **API Request**: Memanggil client-side helper `supabase.auth.signUp()`.
-3.  **Database Layer**: Supabase Auth mencatat user baru dan memicu fungsi pemicu database (*database trigger*) secara internal untuk membuat baris profil kosong baru di tabel `profiles` dengan ID yang sesuai.
-4.  **Bypass Auto-Redirect**: Karena Supabase lokal mengizinkan auto-login, client langsung memanggil `supabase.auth.signOut()` untuk membersihkan cookies, menghapus cache lokal, dan memaksa navigasi bersih ke `/login`.
 
 ---
 
@@ -85,12 +176,6 @@ sequenceDiagram
     User->>User: Perbarui cache localStorage & refetch useProfile
 ```
 
-1.  **UI Action**: Pengguna memilih file gambar lewat input file dan menekan ikon pensil.
-2.  **Mime & Size Check**: Aplikasi memvalidasi file di client (harus tipe `image/*` dan ukuran `< 2MB`).
-3.  **API upload**: Mengirim request POST berisi berkas gambar ke `/api/upload`.
-4.  **Security & CDN Upload**: Endpoint memeriksa sesi user di server, mengunggah biner gambar ke folder Cloudinary yang sesuai (`driver_profiles` atau `customer_profiles`), lalu mengembalikan URL gambar yang aman.
-5.  **Database Write**: Client menerima URL tersebut, memanggil `supabase.from('profiles').update({ avatar_url: secureUrl })` untuk disimpan di database, memperbarui cache lokal, dan memicu event sinkronisasi agar foto profil di Navbar berubah secara real-time.
-
 ---
 
 ### C. Alur Menghapus Foto Profil (DELETE)
@@ -109,12 +194,6 @@ sequenceDiagram
     API-->>User: Kembalikan respon sukses
     User->>User: Hapus cache lokal & refresh useProfile
 ```
-
-1.  **UI Action**: Pengguna menekan tombol hapus (ikon silang merah) pada mode edit foto profil.
-2.  **API DELETE Request**: Menembak request DELETE ke `/api/upload`. Tidak ada parameter ID/URL yang dikirim dari client untuk mencegah manipulasi data orang lain.
-3.  **Server Authentication & Select**: Server membaca sesi user aktif, lalu mengambil data `avatar_url` langsung dari tabel database `profiles` berdasarkan User ID sesi.
-4.  **CDN Destroy**: Server mengurai URL gambar, mengekstrak Public ID-nya, lalu memanggil `cloudinary.uploader.destroy(publicId)` untuk menghapus berkas fisik di Cloudinary.
-5.  **Database Nullify**: Server melakukan update kolom `avatar_url` menjadi `null` di database dan mengembalikan respon sukses. Client menghapus cache lokalnya dan memicu pembaruan UI.
 
 ---
 
@@ -135,8 +214,39 @@ sequenceDiagram
     Note over Customer: Profil & foto driver tampil di history pesanan aktif pelanggan
 ```
 
-1.  **UI Action**: Pelanggan memilih lokasi jemput & tujuan di halaman order (misal `/user/ride`), lalu menekan **"Pesan Sekarang"**.
-2.  **Database Insert**: Client memproses perhitungan harga dan memanggil `supabase.from('orders').insert(...)` untuk menambahkan baris pesanan baru dengan status `searching`.
-3.  **Realtime Event Propagation**: Supabase secara instan menyiarkan event penambahan baris data baru melalui *PostgreSQL Realtime Channel* ke seluruh driver yang berlangganan (*subscribed*).
-4.  **UI Update (Driver)**: Halaman `/driver` menerima payload realtime tersebut secara instan, memicu pembaruan data, dan menampilkan pesanan baru di peta driver secara instan tanpa perlu reload halaman.
-5.  **Order Acceptance**: Driver menekan **"Ambil Pesanan"**, memperbarui kolom `driver_id` dan `status` ke `accepted`. Pelanggan menerima pembaruan ini secara realtime dan menampilkan info lengkap driver (nama, plat kendaraan, dan foto profil driver) di kartunya.
+---
+
+## 7. Hal-Hal yang Wajib Diwaspadai
+
+> [!CAUTION]
+> **ATURAN EMAS PENGEMBANGAN PROYEK KOMAH**
+>
+> 1. **Jangan Hapus Sembarangan Kunci `localStorage`**:
+>    Key `komah_profile_cache`, `komah_user_cache`, `driverProfilePic`, dan `userProfilePic` digunakan secara aktif untuk mengoptimalkan pemuatan UI dan navigasi offline. Jika ingin memodifikasi data ini, gunakan helper yang telah disediakan atau bersihkan secara bersih melalui fungsi logout/registrasi.
+> 
+> 2. **Upload & Delete Foto Wajib Lewat API Route**:
+>    **Jangan pernah** mencoba melakukan integrasi upload foto Cloudinary langsung dari sisi client (komponen browser). Kunci API (`CLOUDINARY_API_KEY`) dan rahasia API (`CLOUDINARY_API_SECRET`) harus tetap aman berada di server (`/api/upload`) demi menghindari pencurian kuota penyimpanan gambar.
+> 
+> 3. **Sinkronisasi Otomatis Foto Profil**:
+>    Jika Anda memodifikasi pengunggahan foto profil di halaman profil pelanggan atau driver, pastikan Anda memicu pembaruan Navbar dengan men-dispatch event kustom:
+>    *   Pelanggan: `window.dispatchEvent(new Event('profilePictureUpdated'))`
+>    *   Mitra Driver: `window.dispatchEvent(new Event('driverProfilePictureUpdated'))`
+> 
+> 4. **Middleware dan Sesi Server**:
+>    Ingat bahwa file [server.js](file:///lib/supabase/server.js) menggunakan environment key `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` dengan fallback ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Pastikan berkas `.env.local` lokal Anda memiliki salah satu dari kunci tersebut agar server API Route tidak melempar kesalahan status `500 (Gagal memproses di server)`.
+> 
+> 5. **Otorisasi Sisi Server**:
+>    Saat mengubah data database di Route Handler API, selalu ambil ID pengguna dari token autentikasi sesi yang valid (`supabase.auth.getUser()`), **bukan** menerima ID pengguna yang dikirimkan secara langsung dari parameter request client. Hal ini mencegah celah keamanan manipulasi ID pengguna lain.
+
+---
+
+## 8. Log Pembersihan Kode (Dead Code Cleanup Log)
+
+Berikut adalah daftar modul dan berkas kode mati (*dead code*) yang telah dihapus dari proyek ini untuk penyederhanaan arsitektur aplikasi (penanganan lokal primitif `try-catch`):
+
+*   **`lib/errors/AppError.js`** [DIHAPUS]
+    *   *Alasan*: Class pembungkus error kustom global yang tidak lagi digunakan karena proyek sepenuhnya beralih ke penanganan lokal menggunakan `try-catch` primitif di masing-masing page/API.
+*   **`lib/errors/errorHandler.js`** [DIHAPUS]
+    *   *Alasan*: Translator error terpusat yang tidak lagi digunakan.
+*   **`lib/hooks/queries/useOrders.js`** [DIHAPUS]
+    *   *Alasan*: Hook query model arsitektur berlapis yang kompleks. Saat ini, client-side query mengambil data secara langsung menggunakan Supabase Client murni di tingkat komponen halaman untuk menjaga kesederhanaan dan meminimalkan bug.
