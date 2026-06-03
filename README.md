@@ -83,7 +83,7 @@ Berikut adalah struktur folder utama proyek KOMAH yang perlu Anda ketahui sebelu
 │   └── pdf.js                       # Helper pembuat receipt struk pesanan PDF (jspdf)
 ├── middleware.js                    # Proteksi rute & pengalihan login otomatis (auth guard)
 ├── package.json                     # Konfigurasi dependensi npm
-└── dokumentasi.md                   # Dokumentasi program (Dokumen ini)
+└── README.md                        # Dokumentasi program (Dokumen ini)
 ```
 
 ---
@@ -92,15 +92,15 @@ Berikut adalah struktur folder utama proyek KOMAH yang perlu Anda ketahui sebelu
 
 Jika Anda ingin memodifikasi atau memperbaiki bagian penting dari sistem, buka file-file berikut:
 
-1.  **[lib/hooks/useProfile.js](file:///lib/hooks/useProfile.js)**
+1.  **[lib/hooks/useProfile.js](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/lib/hooks/useProfile.js)**
     *   *Peran*: Mengelola caching profil, sesi autentikasi, dan memicu pembaruan data secara asinkron pasca-render. Modifikasi file ini jika Anda ingin mengubah cara data profil diambil, disimpan ke cache, atau dibersihkan saat logout.
-2.  **[app/api/upload/route.js](file:///app/api/upload/route.js)**
+2.  **[app/api/upload/route.js](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/api/upload/route.js)**
     *   *Peran*: Gerbang API internal untuk otentikasi user, pembersihan foto lama, pengunggahan foto baru ke Cloudinary, dan penghapusan foto secara aman di database. Buka file ini jika terjadi kegagalan proses di server saat pengunggahan gambar.
-3.  **[middleware.js](file:///middleware.js)**
+3.  **[middleware.js](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/middleware.js)**
     *   *Peran*: Mengatur *route guard*. Menentukan apakah pengguna yang belum login boleh membuka halaman tertentu, dan mengarahkan pengguna ke halaman yang tepat sesuai peran (`driver` ke `/driver`, `customer` ke `/user`).
-4.  **[lib/constants.js](file:///lib/constants.js)**
+4.  **[lib/constants.js](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/lib/constants.js)**
     *   *Peran*: Pusat konfigurasi aplikasi. Berisi harga dasar tarif, tarif per km, koordinat default peta kampus UIN Suska Riau, format rupiah, formatting tanggal, dan helper pembuatan URL chat WhatsApp (`buildWhatsAppUrl`).
-5.  **[components/OrderMap.jsx](file:///components/OrderMap.jsx)**
+5.  **[components/OrderMap.jsx](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/components/OrderMap.jsx)**
     *   *Peran*: Komponen peta Leaflet utama yang merender penjemputan, tujuan, rute jalan raya, dan fit-bounds otomatis. Modifikasi ini jika Anda ingin mengubah tampilan marker atau interaksi peta.
 
 ---
@@ -111,13 +111,13 @@ Gunakan tabel pemetaan di bawah ini untuk mencari file program berdasarkan fitur
 
 | Nama Fitur | File Halaman Utama | Komponen Pendukung | Tabel Database | Deskripsi Alur Fitur |
 | :--- | :--- | :--- | :--- | :--- |
-| **Pemesanan Ojek (Antar/Jemput)** | [ride/page.jsx](file:///app/(dashboard)/user/ride/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput nama lokasi & titik koordinat peta $\rightarrow$ hitung jarak & harga $\rightarrow$ simpan ke database dengan status `searching`. |
-| **Pemesanan Pengiriman (KOMAH Delivery)** | [delivery/page.jsx](file:///app/(dashboard)/user/delivery/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput detail barang, nomor WA penerima, titik jemput/tujuan $\rightarrow$ kalkulasi tarif $\rightarrow$ simpan pesanan. |
-| **Pemesanan Makanan (KOMAH Food)** | [food/page.jsx](file:///app/(dashboard)/user/food/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput detail makanan/resto $\rightarrow$ pilih lokasi pengantaran $\rightarrow$ simpan pesanan. |
-| **Pemesanan Jasa (KOMAH Helper)** | [helper/page.jsx](file:///app/(dashboard)/user/helper/page.jsx) | `constants.js` (tarif minimum) | `orders` | Menginput deskripsi tugas jasa/bantuan $\rightarrow$ tarif awal dihitung minimum Rp5.000 (selanjutnya bisa dinego via WA) $\rightarrow$ simpan pesanan. |
-| **Riwayat & Cetak Struk (Pelanggan)** | [history/page.jsx](file:///app/(dashboard)/user/history/page.jsx) | `lib/pdf.js` (`generateOrderReceipt`) | `orders`, `profiles` | Mengambil data order berdasarkan ID Pelanggan $\rightarrow$ kelompokkan pesanan aktif dan selesai $\rightarrow$ unduh struk pesanan PDF menggunakan jsPDF. |
-| **Pengaturan Profil & Foto (Pelanggan & Driver)** | [profile/page.jsx (User)](file:///app/(dashboard)/user/profile/page.jsx) & [profile/page.jsx (Driver)](file:///app/(dashboard)/driver/profile/page.jsx) | `lib/hooks/useProfile.js`, `/api/upload` | `profiles` | Mengubah nama/nomor WA $\rightarrow$ memicu input file upload profil $\rightarrow$ tembak API Route $\rightarrow$ Simpan di profiles. |
-| **Dashboard Peta & Ambil Order (Driver)** | [page.jsx (Driver)](file:///app/(dashboard)/driver/page.jsx) & [pesanan/page.jsx](file:///app/(dashboard)/driver/pesanan/page.jsx) | `OrderMap.jsx` | `orders`, `profiles` | Berlangganan realtime data order berstatus `searching` $\rightarrow$ RPC `take_order` atau `release_order` $\rightarrow$ perbarui status pesanan menjadi `accepted`, `on_the_way`, atau `completed`. |
+| **Pemesanan Ojek (Antar/Jemput)** | [ride/page.jsx](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/user/ride/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput nama lokasi & titik koordinat peta $\rightarrow$ hitung jarak & harga $\rightarrow$ simpan ke database dengan status `searching`. |
+| **Pemesanan Pengiriman (KOMAH Delivery)** | [delivery/page.jsx](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/user/delivery/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput detail barang, nomor WA penerima, titik jemput/tujuan $\rightarrow$ kalkulasi tarif $\rightarrow$ simpan pesanan. |
+| **Pemesanan Makanan (KOMAH Food)** | [food/page.jsx](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/user/food/page.jsx) | `OrderMap.jsx`, `MapPicker.jsx` | `orders` | Menginput detail makanan/resto $\rightarrow$ pilih lokasi pengantaran $\rightarrow$ simpan pesanan. |
+| **Pemesanan Jasa (KOMAH Helper)** | [helper/page.jsx](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/user/helper/page.jsx) | `constants.js` (tarif minimum) | `orders` | Menginput deskripsi tugas jasa/bantuan $\rightarrow$ tarif awal dihitung minimum Rp5.000 (selanjutnya bisa dinego via WA) $\rightarrow$ simpan pesanan. |
+| **Riwayat & Cetak Struk (Pelanggan)** | [history/page.jsx](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/user/history/page.jsx) | `lib/pdf.js` (`generateOrderReceipt`) | `orders`, `profiles` | Mengambil data order berdasarkan ID Pelanggan $\rightarrow$ kelompokkan pesanan aktif dan selesai $\rightarrow$ unduh struk pesanan PDF menggunakan jsPDF. |
+| **Pengaturan Profil & Foto (Pelanggan & Driver)** | [profile/page.jsx (User)](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/user/profile/page.jsx) & [profile/page.jsx (Driver)](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/driver/profile/page.jsx) | `lib/hooks/useProfile.js`, `/api/upload` | `profiles` | Mengubah nama/nomor WA $\rightarrow$ memicu input file upload profil $\rightarrow$ tembak API Route $\rightarrow$ Simpan di profiles. |
+| **Dashboard Peta & Ambil Order (Driver)** | [page.jsx (Driver)](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/driver/page.jsx) & [pesanan/page.jsx](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/app/(dashboard)/driver/pesanan/page.jsx) | `OrderMap.jsx` | `orders`, `profiles` | Berlangganan realtime data order berstatus `searching` $\rightarrow$ RPC `take_order` atau `release_order` $\rightarrow$ perbarui status pesanan menjadi `accepted`, `on_the_way`, atau `completed`. |
 
 ---
 
@@ -233,7 +233,7 @@ sequenceDiagram
 >    *   Mitra Driver: `window.dispatchEvent(new Event('driverProfilePictureUpdated'))`
 > 
 > 4. **Middleware dan Sesi Server**:
->    Ingat bahwa file [server.js](file:///lib/supabase/server.js) menggunakan environment key `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` dengan fallback ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Pastikan berkas `.env.local` lokal Anda memiliki salah satu dari kunci tersebut agar server API Route tidak melempar kesalahan status `500 (Gagal memproses di server)`.
+>    Ingat bahwa file [server.js](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/lib/supabase/server.js) menggunakan environment key `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` with fallback ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Pastikan berkas `.env.local` lokal Anda memiliki salah satu dari kunci tersebut agar server API Route tidak melempar kesalahan status `500 (Gagal memproses di server)`.
 > 
 > 5. **Otorisasi Sisi Server**:
 >    Saat mengubah data database di Route Handler API, selalu ambil ID pengguna dari token autentikasi sesi yang valid (`supabase.auth.getUser()`), **bukan** menerima ID pengguna yang dikirimkan secara langsung dari parameter request client. Hal ini mencegah celah keamanan manipulasi ID pengguna lain.
