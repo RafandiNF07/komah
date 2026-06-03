@@ -93,7 +93,7 @@ Jika Anda ingin memodifikasi atau memperbaiki bagian penting dari sistem, buka f
 
 1.  **[lib/hooks/useProfile.js](lib/hooks/useProfile.js)**
     *   *Peran*: Mengelola caching profil, sesi autentikasi, dan memicu pembaruan data secara asinkron pasca-render. Modifikasi file ini jika Anda ingin mengubah cara data profil diambil, disimpan ke cache, atau dibersihkan saat logout.
-2.  **[app/api/upload/route.js](/app/api/upload/route.js)**
+2.  **[app/api/upload/route.js](app/api/upload/route.js)**
     *   *Peran*: Gerbang API internal untuk otentikasi user, pembersihan foto lama, pengunggahan foto baru ke Cloudinary, dan penghapusan foto secara aman di database. Buka file ini jika terjadi kegagalan proses di server saat pengunggahan gambar.
 3.  **[middleware.js](middleware.js)**
     *   *Peran*: Mengatur *route guard*. Menentukan apakah pengguna yang belum login boleh membuka halaman tertentu, dan mengarahkan pengguna ke halaman yang tepat sesuai peran (`driver` ke `/driver`, `customer` ke `/user`).
