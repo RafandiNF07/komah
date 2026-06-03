@@ -87,20 +87,19 @@ Berikut adalah struktur folder utama proyek KOMAH yang perlu Anda ketahui sebelu
 ```
 
 ---
-
 ## 3. Daftar File Penting (Core Files)
 
 Jika Anda ingin memodifikasi atau memperbaiki bagian penting dari sistem, buka file-file berikut:
 
 1.  **[lib/hooks/useProfile.js](lib/hooks/useProfile.js)**
-2.  **[app/api/upload/route.js](app/api/upload/route.js)**
+    *   *Peran*: Mengelola caching profil, sesi autentikasi, dan memicu pembaruan data secara asinkron pasca-render. Modifikasi file ini jika Anda ingin mengubah cara data profil diambil, disimpan ke cache, atau dibersihkan saat logout.
+2.  **[app/api/upload/route.js](/app/api/upload/route.js)**
+    *   *Peran*: Gerbang API internal untuk otentikasi user, pembersihan foto lama, pengunggahan foto baru ke Cloudinary, dan penghapusan foto secara aman di database. Buka file ini jika terjadi kegagalan proses di server saat pengunggahan gambar.
 3.  **[middleware.js](middleware.js)**
-4.  **[lib/constants.js](lib/constants.js)**
-5.  **[components/OrderMap.jsx](components/OrderMap.jsx)**
     *   *Peran*: Mengatur *route guard*. Menentukan apakah pengguna yang belum login boleh membuka halaman tertentu, dan mengarahkan pengguna ke halaman yang tepat sesuai peran (`driver` ke `/driver`, `customer` ke `/user`).
-4.  **[lib/constants.js](file:///lib/constants.js)**
+4.  **[lib/constants.js](lib/constants.js)**
     *   *Peran*: Pusat konfigurasi aplikasi. Berisi harga dasar tarif, tarif per km, koordinat default peta kampus UIN Suska Riau, format rupiah, formatting tanggal, dan helper pembuatan URL chat WhatsApp (`buildWhatsAppUrl`).
-5.  **[components/OrderMap.jsx](file:///components/OrderMap.jsx)**
+5.  **[components/OrderMap.jsx](components/OrderMap.jsx)**
     *   *Peran*: Komponen peta Leaflet utama yang merender penjemputan, tujuan, rute jalan raya, dan fit-bounds otomatis. Modifikasi ini jika Anda ingin mengubah tampilan marker atau interaksi peta.
 
 ---
