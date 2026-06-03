@@ -128,6 +128,44 @@ export default function DriverProfilePage() {
     }
   };
 
+  // Logika untuk menghapus foto profil
+  const handleImageDelete = async () => {
+    if (!user) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus foto profil?')) return;
+
+    setUploadingImage(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Gagal menghapus foto profil.');
+      }
+
+      // Hapus data cache di localStorage
+      localStorage.removeItem('driverProfilePic');
+      setProfileImage(null);
+
+      // Trigger event update navbar
+      window.dispatchEvent(new Event('driverProfilePictureUpdated'));
+
+      // Refetch data profil terbaru
+      refetch();
+      setFeedback({ type: 'success', message: 'Foto profil berhasil dihapus!' });
+    } catch (err) {
+      console.error('Error deleting avatar:', err);
+      setFeedback({ type: 'error', message: err.message || 'Gagal menghapus foto profil.' });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+
   // Handler simpan profil teks ke Supabase
   const handleSave = async () => {
     if (!user) return;
@@ -295,6 +333,25 @@ export default function DriverProfilePage() {
                 <Image
                   src="/icons/pencil.png"
                   alt="Ubah Foto"
+                  width={14}
+                  height={14}
+                  className="object-contain"
+                />
+              </button>
+            )}
+
+            {/* Tombol Hapus Foto Profil */}
+            {isEditing && profile?.avatar_url && (
+              <button
+                type="button"
+                onClick={handleImageDelete}
+                disabled={uploadingImage}
+                className="absolute bottom-0 left-0 w-8 h-8 bg-close rounded-full flex items-center justify-center shadow-lg border-2 border-surface transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
+                title="Hapus Foto Profil"
+              >
+                <Image
+                  src="/icons/cancel.png"
+                  alt="Hapus Foto"
                   width={14}
                   height={14}
                   className="object-contain"
