@@ -29,12 +29,15 @@ export default function DriverDashboardPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('success') === 'true') {
-        setFeedback({ type: 'success', message: 'Pesanan berhasil diambil! Silakan hubungi pemesan.' });
-        window.history.replaceState({}, document.title, window.location.pathname);
+        const timer = setTimeout(() => {
+          setFeedback({ type: 'success', message: 'Pesanan berhasil diambil! Silakan hubungi pemesan.' });
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, []);
-  
+
   // --- STATE UNTUK WAKTU REAL-TIME ---
   const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -329,14 +332,25 @@ export default function DriverDashboardPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-4 border-b border-outline-variant/30">
                   
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center overflow-hidden">
-                       <Image 
-                        src="/icons/person.png" 
-                        alt="person" 
-                        width={20} 
-                        height={20} 
-                        className="object-contain"
-                      />
+                    <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center overflow-hidden relative">
+                      {activeOrder.customer?.avatar_url ? (
+                        <Image 
+                          src={activeOrder.customer.avatar_url} 
+                          alt="Foto Profil Pelanggan" 
+                          width={40} 
+                          height={40} 
+                          unoptimized
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <Image 
+                          src="/icons/person.png" 
+                          alt="person" 
+                          width={20} 
+                          height={20} 
+                          className="object-contain"
+                        />
+                      )}
                     </div>
                     <div>
                       <p className="font-label-mono text-[11px] text-text-secondary">Pemesan</p>

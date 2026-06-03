@@ -20,36 +20,8 @@ export default function DriverProfilePage() {
   const [platNomor, setPlatNomor] = useState('');
   const [jenisKendaraan, setJenisKendaraan] = useState('');
 
-  // Mode switching state
-  const [switchingRole, setSwitchingRole] = useState(false);
-
   // Referensi untuk memicu klik pada input file tersembunyi
   const fileInputRef = useRef(null);
-
-  // Switch role handler (Driver ke Customer)
-  const handleSwitchRole = async () => {
-    if (!user || !profile) return;
-
-    setSwitchingRole(true);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: 'customer' })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      setFeedback({ type: 'success', message: 'Berhasil beralih ke Mode Pelanggan!' });
-      setTimeout(() => {
-        window.location.href = '/user';
-      }, 1000);
-    } catch (err) {
-      console.error('Error switching to customer:', err);
-      setFeedback({ type: 'error', message: 'Gagal beralih peran. Silakan coba lagi.' });
-      setSwitchingRole(false);
-    }
-  };
 
   // Sync form state when profile data loads
   useEffect(() => {
@@ -109,10 +81,7 @@ export default function DriverProfilePage() {
       formData.append('foto', file);
       formData.append('role', 'driver'); // Memastikan masuk ke folder driver_profiles
 
-      // Kirim URL foto lama jika ada untuk dihapus otomatis dari Cloudinary
-      if (profile?.avatar_url) {
-        formData.append('oldImageUrl', profile.avatar_url);
-      }
+
 
       // 2. Tembak ke API Route upload internal
       const uploadResponse = await fetch('/api/upload', {
@@ -158,6 +127,44 @@ export default function DriverProfilePage() {
       setUploadingImage(false);
     }
   };
+
+  // Logika untuk menghapus foto profil
+  const handleImageDelete = async () => {
+    if (!user) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus foto profil?')) return;
+
+    setUploadingImage(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Gagal menghapus foto profil.');
+      }
+
+      // Hapus data cache di localStorage
+      localStorage.removeItem('driverProfilePic');
+      setProfileImage(null);
+
+      // Trigger event update navbar
+      window.dispatchEvent(new Event('driverProfilePictureUpdated'));
+
+      // Refetch data profil terbaru
+      refetch();
+      setFeedback({ type: 'success', message: 'Foto profil berhasil dihapus!' });
+    } catch (err) {
+      console.error('Error deleting avatar:', err);
+      setFeedback({ type: 'error', message: err.message || 'Gagal menghapus foto profil.' });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
 
   // Handler simpan profil teks ke Supabase
   const handleSave = async () => {
@@ -292,11 +299,10 @@ export default function DriverProfilePage() {
             onChange={handleImageChange}
             className="hidden"
           />
-
           <div className="relative">
             <div className={`w-24 h-24 rounded-full bg-surface-container-high border-[3px] transition-all duration-300 overflow-hidden flex items-center justify-center relative ${isEditing ? 'border-tertiary shadow-md' : 'border-tertiary/30'}`}>
               {avatarSrc ? (
-                <img src={avatarSrc} alt="Profil Driver" className="w-full h-full object-cover" />
+                <Image src={avatarSrc} alt="Profil Driver" className="w-full h-full object-cover" width={96} height={96} unoptimized />
               ) : (
                 <Image
                   src="/icons/person.png"
@@ -327,6 +333,25 @@ export default function DriverProfilePage() {
                 <Image
                   src="/icons/pencil.png"
                   alt="Ubah Foto"
+                  width={14}
+                  height={14}
+                  className="object-contain"
+                />
+              </button>
+            )}
+
+            {/* Tombol Hapus Foto Profil */}
+            {isEditing && profile?.avatar_url && (
+              <button
+                type="button"
+                onClick={handleImageDelete}
+                disabled={uploadingImage}
+                className="absolute bottom-0 left-0 w-8 h-8 bg-close rounded-full flex items-center justify-center shadow-lg border-2 border-surface transition-transform hover:scale-110 active:scale-95 disabled:opacity-50"
+                title="Hapus Foto Profil"
+              >
+                <Image
+                  src="/icons/cancel.png"
+                  alt="Hapus Foto"
                   width={14}
                   height={14}
                   className="object-contain"
@@ -450,39 +475,6 @@ export default function DriverProfilePage() {
           </div>
         </div>
       </div>
-
-      {/* ================= CARD TUKAR MODE ================= */}
-      <div className="mt-6 bg-surface-container border border-outline-variant/30 rounded-2xl p-5 md:p-6 shadow-md transition-all duration-300 hover:shadow-lg">
-        <h3 className="font-headline-md text-[18px] font-bold text-text-primary mb-2 flex items-center gap-2">
-          <Image src="/icons/person.png" alt="mode" width={24} height={24} />
-          Beralih Peran (Mode Akun)
-        </h3>
-        <p className="font-body-sm text-[13px] text-text-secondary mb-4 leading-relaxed">
-          Anda saat ini masuk sebagai <strong>Mitra Driver</strong>.
-          Ingin melakukan pemesanan ojek, pesan makanan, atau kirim barang? Beralihlah ke mode <strong>Pelanggan</strong>.
-        </p>
-        <button
-          onClick={handleSwitchRole}
-          disabled={switchingRole}
-          className="group w-full py-3 bg-secondary-container text-on-secondary-container font-bold rounded-xl shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-secondary-container/30 active:scale-95 font-label-mono text-[13px] flex items-center justify-center gap-2"
-        >
-          {switchingRole ? (
-            <span>Memproses...</span>
-          ) : (
-            <>
-              <Image
-                src="/icons/person.png"
-                alt="switch"
-                width={18}
-                height={18}
-                className="transition-transform duration-300 group-hover:scale-110"
-              />
-              <span>Beralih ke Mode Pelanggan</span>
-            </>
-          )}
-        </button>
-      </div>
-
     </div>
   );
 }

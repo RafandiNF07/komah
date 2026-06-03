@@ -33,6 +33,10 @@ export default function UserDashboardLayout({ children }) {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
+      localStorage.removeItem('komah_profile_cache');
+      localStorage.removeItem('komah_user_cache');
+      localStorage.removeItem('driverProfilePic');
+      localStorage.removeItem('userProfilePic');
       setShowLogoutModal(false);
       window.location.href = '/';
     } catch (err) {
@@ -132,12 +136,13 @@ export default function UserDashboardLayout({ children }) {
               // Loading skeleton for avatar
               <div className="w-full h-full bg-surface-container-high animate-pulse rounded-full"></div>
             ) : avatarSrc ? (
-              // Kita pakai tag <img> biasa (bukan bawaan Next.js) karena format gambar 
-              // dari galeri hp/laptop (blob/base64) kadang ditolak oleh komponen <Image> Next.js
-              <img
+              <Image
                 src={avatarSrc}
                 alt="Foto Profil"
-                className="object-cover w-full h-full" 
+                width={96}
+                height={96}
+                unoptimized
+                className="object-cover w-full h-full"
               />
             ) : (
               // Ikon default jika belum ada foto yang di-upload

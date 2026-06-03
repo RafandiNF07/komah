@@ -134,22 +134,32 @@ export default function MapPicker({
   const [activeQueryType, setActiveQueryType] = useState(null); // 'pickup' atau 'destination'
   const searchTimeoutRef = useRef(null);
 
+
   // Sync search queries with geocoded addresses
   useEffect(() => {
     if (pickup) {
-      setPickupQuery(pickup.address);
+      const timer = setTimeout(() => {
+        setPickupQuery(pickup.address);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [pickup]);
 
   useEffect(() => {
     if (destination) {
-      setDestinationQuery(destination.address);
+      const timer = setTimeout(() => {
+        setDestinationQuery(destination.address);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [destination]);
 
   useEffect(() => {
     if (address) {
-      setPickupQuery(address);
+      const timer = setTimeout(() => {
+        setPickupQuery(address);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [address]);
 

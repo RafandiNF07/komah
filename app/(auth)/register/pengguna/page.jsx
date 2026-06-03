@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; 
@@ -15,6 +15,14 @@ export default function RegisterPelangganPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  // Clear cache on mount to prevent showing other users' avatars/data if any leftovers exist
+  useEffect(() => {
+    localStorage.removeItem('komah_profile_cache');
+    localStorage.removeItem('komah_user_cache');
+    localStorage.removeItem('driverProfilePic');
+    localStorage.removeItem('userProfilePic');
+  }, []);
 
   // Form fields
   const [namaLengkap, setNamaLengkap] = useState('');
@@ -66,9 +74,16 @@ export default function RegisterPelangganPage() {
         return;
       }
 
+      // Supabase auto-logs in the user. Sign out immediately to prevent auto-login & redirect
+      await supabase.auth.signOut();
+      localStorage.removeItem('komah_profile_cache');
+      localStorage.removeItem('komah_user_cache');
+      localStorage.removeItem('driverProfilePic');
+      localStorage.removeItem('userProfilePic');
+
       setSuccess('Pendaftaran berhasil! Mengalihkan ke halaman login...');
       setTimeout(() => {
-        router.push('/login');
+        window.location.href = '/login';
       }, 2000);
     } catch (err) {
       setError('Terjadi kesalahan. Silakan coba lagi.');
