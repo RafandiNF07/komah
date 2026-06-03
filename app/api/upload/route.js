@@ -60,12 +60,16 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Tidak ada file yang dideteksi.' }, { status: 400 });
         }
 
-        // --- 2. VALIDASI MIME TYPE: Pastikan hanya berkas gambar yang diunggah ---
+        // --- 2. VALIDASI MIME TYPE & UKURAN: Pastikan hanya berkas gambar yang diunggah ---
         const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        const maxBytes = 2 * 1024 * 1024; // 2MB
         if (!allowedMimeTypes.includes(file.type)) {
             return NextResponse.json({ 
                 error: 'Format berkas tidak didukung. Harap unggah gambar (JPG, PNG, GIF, atau WEBP).' 
             }, { status: 400 });
+        }
+        if (file.size > maxBytes) {
+            return NextResponse.json({ error: 'Ukuran foto maksimal adalah 2MB.' }, { status: 400 });
         }
 
         // --- 3. AMBIL URL FOTO LAMA LANGSUNG DARI DATABASE (Lebih Aman dari Manipulasi Client) ---
