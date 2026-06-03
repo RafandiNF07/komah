@@ -77,10 +77,7 @@ export default function ProfilePage() {
       formData.append('foto', file);
       formData.append('role', 'customer'); // Memastikan masuk ke folder customer_profiles
 
-      // Kirim URL foto lama jika ada untuk dihapus otomatis dari Cloudinary
-      if (profile?.avatar_url) {
-        formData.append('oldImageUrl', profile.avatar_url);
-      }
+
 
       // 2. Kirim data ke API Route upload internal
       const uploadResponse = await fetch('/api/upload', {

@@ -81,10 +81,7 @@ export default function DriverProfilePage() {
       formData.append('foto', file);
       formData.append('role', 'driver'); // Memastikan masuk ke folder driver_profiles
 
-      // Kirim URL foto lama jika ada untuk dihapus otomatis dari Cloudinary
-      if (profile?.avatar_url) {
-        formData.append('oldImageUrl', profile.avatar_url);
-      }
+
 
       // 2. Tembak ke API Route upload internal
       const uploadResponse = await fetch('/api/upload', {
