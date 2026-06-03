@@ -120,11 +120,15 @@ export default function DriverDashboardLayout({ children }) {
           <div className="w-24 h-24 rounded-full mb-3 overflow-hidden ring-2 ring-tertiary relative bg-surface-container-high flex items-center justify-center">
             {loading ? (
               <div className="w-full h-full bg-surface-container-high animate-pulse rounded-full"></div>
-            ) : avatarSrc ? (
-              <img
+
+                        ) : avatarSrc ? (
+              <Image
                 src={avatarSrc}
                 alt="Foto Profil"
-                className="object-cover w-full h-full" 
+                width={96}
+                height={96}
+                unoptimized
+                className="object-cover w-full h-full"
               />
             ) : (
               <Image

@@ -29,12 +29,15 @@ export default function DriverDashboardPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('success') === 'true') {
-        setFeedback({ type: 'success', message: 'Pesanan berhasil diambil! Silakan hubungi pemesan.' });
-        window.history.replaceState({}, document.title, window.location.pathname);
+        const timer = setTimeout(() => {
+          setFeedback({ type: 'success', message: 'Pesanan berhasil diambil! Silakan hubungi pemesan.' });
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, []);
-  
+
   // --- STATE UNTUK WAKTU REAL-TIME ---
   const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());

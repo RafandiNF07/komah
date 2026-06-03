@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
+import { createClient } from '@/lib/supabase/server';
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -9,16 +10,40 @@ cloudinary.config({
 
 export async function POST(request) {
     try {
+        // --- 1. OTORISASI: Cek session user via Supabase Server Client ---
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
+            return NextResponse.json({ error: 'Akses ditolak. Silakan login terlebih dahulu.' }, { status: 401 });
+        }
+
         const formData = await request.formData();
         const file = formData.get('foto');
-        const role = formData.get('role') || 'user_profiles';
-        const oldImageUrl = formData.get('oldImageUrl');
+        const role = formData.get('role') || 'customer';
 
         if (!file) {
             return NextResponse.json({ error: 'Tidak ada file yang dideteksi.' }, { status: 400 });
         }
 
-        // --- PROSES HAPUS FOTO LAMA ---
+        // --- 2. VALIDASI MIME TYPE: Pastikan hanya berkas gambar yang diunggah ---
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedMimeTypes.includes(file.type)) {
+            return NextResponse.json({ 
+                error: 'Format berkas tidak didukung. Harap unggah gambar (JPG, PNG, GIF, atau WEBP).' 
+            }, { status: 400 });
+        }
+
+        // --- 3. AMBIL URL FOTO LAMA LANGSUNG DARI DATABASE (Lebih Aman dari Manipulasi Client) ---
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single();
+
+        const oldImageUrl = profile?.avatar_url;
+
+        // --- 4. PROSES HAPUS FOTO LAMA DI CLOUDINARY ---
         if (oldImageUrl && oldImageUrl.includes('res.cloudinary.com')) {
             try {
                 const urlParts = oldImageUrl.split('/');
@@ -37,7 +62,7 @@ export async function POST(request) {
                     console.log("Respon Hapus Cloudinary:", destroyResult);
                 }
             } catch (err) {
-                console.error("Gagal menghapus aset lama:", err);
+                console.error("Gagal menghapus aset lama dari Cloudinary:", err);
             }
         }
 

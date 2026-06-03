@@ -59,7 +59,9 @@ export default function DriverOrdersPage() {
   }, []);
 
   useEffect(() => {
-    fetchAvailableOrders();
+    const fetchTimer = setTimeout(() => {
+      fetchAvailableOrders();
+    }, 0);
 
     // Setup realtime subscription
     const supabase = createClient();
@@ -74,12 +76,13 @@ export default function DriverOrdersPage() {
       )
       .subscribe();
 
-    const timer = setTimeout(() => {
+    const loadingTimer = setTimeout(() => {
       setLoading(false);
     }, 1000);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(fetchTimer);
+      clearTimeout(loadingTimer);
       supabase.removeChannel(subscription);
     };
   }, [fetchAvailableOrders]);
