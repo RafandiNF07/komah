@@ -33,6 +33,10 @@ export default function DriverDashboardLayout({ children }) {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
+      localStorage.removeItem('komah_profile_cache');
+      localStorage.removeItem('komah_user_cache');
+      localStorage.removeItem('driverProfilePic');
+      localStorage.removeItem('userProfilePic');
       setShowLogoutModal(false);
       window.location.href = '/';
     } catch (err) {
