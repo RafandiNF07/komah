@@ -24,8 +24,8 @@ Buka terminal Anda, lalu jalankan perintah berikut:
 # Clone repository proyek (Ganti URL dengan link repo yang valid)
 git clone <repo-url>
 
-# Masuk ke direktori proyek
-cd Project-KOMAH
+# Masuk ke direktori proyek (sesuaikan dengan nama folder hasil clone)
+cd <repo-folder>
 
 # Pasang seluruh dependensi yang diperlukan
 npm install
