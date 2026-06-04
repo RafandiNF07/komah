@@ -60,3 +60,4 @@ Dokumen asli bawaan proyek yang dipertahankan untuk referensi desain orisinal:
 * **[DATABASE_SCHEMA.md](../desain/DATABASE_SCHEMA.md)**: File mentah skrip SQL inisialisasi tabel Supabase.
 * **[WORKFLOW_GUIDE.md](../desain/WORKFLOW_GUIDE.md)**: Panduan integrasi client-side state.
 * **[HYBRID_PLAN.md](../desain/HYBRID_PLAN.md)**: Rencana awal pengembangan modul hibrida.
+* **[FLOW_EXPLAINER.md](../desain/FLOW_EXPLAINER.md)**: alur program dari ui hingga masuk ke database.
