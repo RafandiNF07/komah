@@ -240,7 +240,7 @@ sequenceDiagram
 >    *   Mitra Driver: `window.dispatchEvent(new Event('driverProfilePictureUpdated'))`
 > 
 > 4. **Middleware dan Sesi Server**:
->    Ingat bahwa file [server.js](file:///home/rafa/Kuliah/WebPrograming/mogakelar/Project-KOMAH/lib/supabase/server.js) menggunakan environment key `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` with fallback ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Pastikan berkas `.env.local` lokal Anda memiliki salah satu dari kunci tersebut agar server API Route tidak melempar kesalahan status `500 (Gagal memproses di server)`.
+>    Ingat bahwa file [server.js](lib/supabase/server.js) menggunakan environment key `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` dengan fallback ke `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Pastikan berkas `.env.local` lokal Anda memiliki salah satu dari kunci tersebut agar server API Route tidak melempar kesalahan status `500 (Gagal memproses di server)`.
 > 
 > 5. **Otorisasi Sisi Server**:
 >    Saat mengubah data database di Route Handler API, selalu ambil ID pengguna dari token autentikasi sesi yang valid (`supabase.auth.getUser()`), **bukan** menerima ID pengguna yang dikirimkan secara langsung dari parameter request client. Hal ini mencegah celah keamanan manipulasi ID pengguna lain.
