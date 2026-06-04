@@ -5,6 +5,7 @@ Dokumen ini dirancang sebagai panduan lengkap serah-terima (*developer handover*
 ---
 
 ## Daftar Isi
+0. [Pusat Dokumentasi](#pusat-dokumentasi)
 1. [Arsitektur Umum](#1-arsitektur-umum)
 2. [Peta Folder & Struktur Direktori](#2-peta-folder--struktur-direktori)
 3. [Daftar File Penting (Core Files)](#3-daftar-file-penting-core-files)
@@ -13,6 +14,12 @@ Dokumen ini dirancang sebagai panduan lengkap serah-terima (*developer handover*
 6. [Alur Aksi UI ke Database (Sequence Diagrams)](#6-alur-aksi-ui-ke-database-sequence-diagrams)
 7. [Hal-Hal yang Wajib Diwaspadai](#7-hal-hal-yang-wajib-diwaspadai)
 8. [Log Pembersihan Kode (Dead Code Cleanup Log)](#8-log-pembersihan-kode-dead-code-cleanup-log)
+
+---
+
+## Pusat Dokumentasi
+
+Jika ingin membuka dokumentasi teknis yang lebih terstruktur, gunakan [pusat dokumentasi KOMAH](docs/README.md).
 
 ---
 
