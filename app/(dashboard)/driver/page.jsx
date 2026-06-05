@@ -231,7 +231,7 @@ export default function DriverDashboardPage() {
         </div>
         
         {/* Bagian Kanan: Waktu Real-Time */}
-        <div className="text-left md:text-right bg-surface-container-high px-5 py-3 rounded-xl border border-outline-variant/50 w-fit min-w-[200px]">
+        <div className="w-full md:w-fit text-center bg-surface-container-high px-5 py-3 rounded-xl border border-outline-variant/50 min-w-[200px] flex flex-col items-center justify-center">
           {mounted ? (
             <>
               <p className="font-headline-sm text-[14px] font-bold text-text-primary">
@@ -243,64 +243,55 @@ export default function DriverDashboardPage() {
             </>
           ) : (
             <div className="h-10 flex items-center justify-center">
-               <span className="animate-spin text-tertiary">sync</span>
+               <Image 
+                  src="/icons/loading.png" 
+                  alt="loading" 
+                  width={20} 
+                  height={20} 
+                  className="animate-spin text-tertiary text-[12px]"
+                />
             </div>
           )}
         </div>
       </header>
 
       {/* ================= STATS GRID ================= */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
-        
-        {/* Kartu 1: Pendapatan */}
-        <div className="bg-surface-container p-4 md:p-5 rounded-2xl border border-outline-variant/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-success/50 flex flex-col justify-center">
-          <div className="flex justify-between items-start mb-3 md:mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-success/20">
-              <Image 
-                src="/icons/wallet.png" 
-                alt="pendapatan" 
-                width={22} 
-                height={22} 
-                className="object-contain"
-              />
-            </div>
-          </div>
-          <h3 className="font-label-mono text-[11px] md:text-[12px] text-text-secondary mb-1">Pendapatan Hari Ini</h3>
-          <p className="font-headline-md text-[18px] md:text-[24px] font-bold text-success">
-            {formatRupiah(stats.todayEarnings)}
-          </p>
-        </div>
+<div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
+  
+  {/* Kartu 1: Pendapatan (Full Width di Mobile) */}
+  <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-success/10 to-transparent p-5 rounded-2xl border border-success/20 flex items-center gap-4 transition-all hover:border-success/40">
+    <div className="w-14 h-14 rounded-full flex items-center justify-center bg-success/20 shrink-0">
+      <Image src="/icons/wallet.png" alt="pendapatan" width={28} height={28} />
+    </div>
+    <div className="flex flex-col justify-center">
+      <h3 className="font-label-mono text-[11px] text-text-secondary uppercase">Pendapatan Hari Ini</h3>
+      <p className="font-headline-md text-[22px] font-bold text-success mt-0.5">{formatRupiah(stats.todayEarnings)}</p>
+    </div>
+  </div>
 
-        {/* Kartu 2: Trip Selesai */}
-        <div className="bg-surface-container p-4 md:p-5 rounded-2xl border border-outline-variant/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-tertiary/50 flex flex-col justify-center">
-          <div className="flex justify-between items-start mb-3 md:mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-tertiary/20">
-              <Image 
-                src="/icons/bike.png" 
-                alt="trip" 
-                width={22} 
-                height={22} 
-                className="object-contain"
-              />
-            </div>
-          </div>
-          <h3 className="font-label-mono text-[11px] md:text-[12px] text-text-secondary mb-1">Trip Selesai Hari Ini</h3>
-          <p className="font-headline-md text-[18px] md:text-[24px] font-bold text-tertiary">{stats.todayTrips}</p>
-        </div>
+  {/* Kartu 2: Trip Selesai */}
+  <div className="col-span-1 bg-gradient-to-br from-tertiary/10 to-transparent p-4 rounded-2xl border border-tertiary/20 flex items-center gap-3 transition-all hover:border-tertiary/40">
+    <div className="w-12 h-12 rounded-full flex items-center justify-center bg-tertiary/20 shrink-0">
+      <Image src="/icons/bike.png" alt="trip" width={24} height={24} />
+    </div>
+    <div className="flex flex-col justify-center">
+      <h3 className="font-label-mono text-[10px] text-text-secondary uppercase">Trip Selesai</h3>
+      <p className="font-headline-md text-[20px] font-bold text-tertiary">{stats.todayTrips}</p>
+    </div>
+  </div>
 
-        {/* --- PERBAIKAN DI SINI (KARTU 3: TOTAL PESANAN MINGGUAN) --- */}
-        {/* Menggunakan justify-self-center dan max-w agar di mobile ukurannya pas di tengah, tidak melar sepenuh layar hp */}
-        <div className="col-span-2 justify-self-center w-full max-w-[calc(50%-6px)] md:col-span-1 md:justify-self-stretch md:max-w-none bg-surface-container p-4 md:p-5 rounded-2xl border border-outline-variant/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-purple/50 flex flex-col justify-center">
-          <div className="flex justify-between items-start mb-3 md:mb-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple/20">
-              <Image src="/icons/notes.png" alt="order" width={20} height={20} className="object-contain" />
-            </div>
-          </div>
-          <h3 className="font-label-mono text-[11px] md:text-[12px] text-text-secondary mb-1">Total Order (Minggu)</h3>
-          <p className="font-headline-md text-[18px] md:text-[24px] font-bold text-purple-600">{stats.weekTrips}</p>
-        </div>
+  {/* Kartu 3: Total Order */}
+  <div className="col-span-1 bg-gradient-to-br from-purple-500/10 to-transparent p-4 rounded-2xl border border-purple-500/20 flex items-center gap-3 transition-all hover:border-purple-500/40">
+    <div className="w-12 h-12 rounded-full flex items-center justify-center bg-purple-500/20 shrink-0">
+      <Image src="/icons/notes.png" alt="order" width={20} height={20} />
+    </div>
+    <div className="flex flex-col justify-center">
+      <h3 className="font-label-mono text-[10px] text-text-secondary uppercase">Total Order</h3>
+      <p className="font-headline-md text-[20px] font-bold text-purple-500">{stats.weekTrips}</p>
+    </div>
+  </div>
 
-      </div>
+</div>
 
       {/* ================= ACTIVE ORDER SECTION ================= */}
       <div>

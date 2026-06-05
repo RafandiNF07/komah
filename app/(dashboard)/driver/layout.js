@@ -105,7 +105,7 @@ export default function DriverDashboardLayout({ children }) {
       )}
 
       {/* ================= SIDEBAR (DESKTOP & MOBILE) ================= */}
-      <nav className={`flex flex-col h-screen p-4 border-r border-outline-variant bg-surface-container shadow-2xl md:shadow-none w-64 fixed left-0 top-0 z-50 transition-transform duration-300 ease-in-out ${
+      <nav className={`flex flex-col h-[100dvh] p-4 border-r border-outline-variant bg-surface-container shadow-2xl md:shadow-none w-64 fixed left-0 top-0 z-50 transition-transform duration-300 ease-in-out ${
         isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         
@@ -119,8 +119,8 @@ export default function DriverDashboardLayout({ children }) {
           />
         </div>
 
-        {/* Profil Singkat Driver */}
-        <div className="flex flex-col items-center mb-8 pb-4 border-b border-outline-variant w-full mt-10 md:mt-0">
+        {/* Bagian Profil (Diberi flex-shrink-0 agar tidak menyusut/terpotong) */}
+        <div className="flex flex-col items-center mb-6 pb-4 border-b border-outline-variant w-full mt-10 md:mt-0 flex-shrink-0">
           <div className="w-24 h-24 rounded-full mb-3 overflow-hidden ring-2 ring-tertiary relative bg-surface-container-high flex items-center justify-center">
             {loading ? (
               <div className="w-full h-full bg-surface-container-high animate-pulse rounded-full"></div>
@@ -151,8 +151,8 @@ export default function DriverDashboardLayout({ children }) {
           <span className="font-label-mono text-[14px] text-text-secondary mt-1">Driver KOMAH</span>
         </div>
 
-        {/* Menu Navigasi Driver */}
-        <ul className="flex flex-col gap-1.5 flex-1">
+        {/* Menu Navigasi (Diberi flex-1 dan overflow-y-auto agar bisa di-scroll secara independen) */}
+        <ul className="flex flex-col gap-1.5 flex-1 overflow-y-auto scrollbar-hide">
           
           {/* 1. Menu Dashboard */}
           <li>
@@ -277,7 +277,8 @@ export default function DriverDashboardLayout({ children }) {
         </ul>
 
         {/* Tombol Keluar (Memicu Modal) */}
-        <div className="mt-auto pt-4 border-t border-outline-variant">
+        {/* Tombol Keluar (Diberi flex-shrink-0 agar selalu muncul di bawah) */}
+        <div className="pt-4 border-t border-outline-variant flex-shrink-0 bg-surface-container">
           <button 
             onClick={() => {
               setIsMobileSidebarOpen(false); 
