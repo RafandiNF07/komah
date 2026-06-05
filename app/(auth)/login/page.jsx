@@ -157,7 +157,7 @@ export default function LoginPage() {
                   {/* INI BAGIAN IKON GAMBARNYA */}
                   <div className="absolute left-4 flex items-center pointer-events-none">
                     <Image 
-                      src="/icons/email_login.png" /* <--- Pastikan nama file ini sesuai dengan yang ada di folder public/icons kamu */
+                      src="/icons/email_login1.png" /* <--- Pastikan nama file ini sesuai dengan yang ada di folder public/icons kamu */
                       alt="icon email" 
                       width={20} 
                       height={20} 
@@ -191,7 +191,7 @@ export default function LoginPage() {
                   {/* Ikon Kunci (Kiri) menggunakan gambar lokal */}
                   <div className="absolute left-4 flex items-center pointer-events-none">
                     <Image 
-                      src="/icons/key.png" /* <-- Ganti dengan nama file gambar kuncimu */
+                      src="/icons/key1.png" /* <-- Ganti dengan nama file gambar kuncimu */
                       alt="icon lock" 
                       width={22} 
                       height={22} 
@@ -220,14 +220,14 @@ export default function LoginPage() {
                     {/* Logika Ganti Gambar Mata */}
                     {showPassword ? (
                       <Image 
-                        src="/icons/visibility_off.png" /* <-- Ganti dengan nama file gambar mata coret/silang */
+                        src="/icons/visibility_off1.png" /* <-- Ganti dengan nama file gambar mata coret/silang */
                         alt="sembunyikan password" 
                         width={22} 
                         height={22} 
                       />
                     ) : (
                       <Image 
-                        src="/icons/visibility.png" /* <-- Ganti dengan nama file gambar mata terbuka */
+                        src="/icons/visibility1.png" /* <-- Ganti dengan nama file gambar mata terbuka */
                         alt="tampilkan password" 
                         width={22} 
                         height={22} 

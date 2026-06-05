@@ -148,7 +148,7 @@ export default function RegisterPelangganPage() {
                 <div className="relative flex items-center">
                   <div className="absolute left-4 flex items-center pointer-events-none">
                     <Image 
-                      src="/icons/email_login.png" 
+                      src="/icons/email_login1.png" 
                       alt="icon email" 
                       width={16} 
                       height={16} 
@@ -176,7 +176,7 @@ export default function RegisterPelangganPage() {
                 <div className="relative flex items-center">
                   <div className="absolute left-4 flex items-center pointer-events-none">
                     <Image 
-                      src="/icons/email2.png" 
+                      src="/icons/email3.png" 
                       alt="icon email" 
                       width={16} 
                       height={16} 
@@ -204,7 +204,7 @@ export default function RegisterPelangganPage() {
                 <div className="relative flex items-center">
                   <div className="absolute left-4 flex items-center pointer-events-none">
                     <Image 
-                      src="/icons/call.png" 
+                      src="/icons/call1.png" 
                       alt="icon whatsapp" 
                       width={16} 
                       height={16} 
@@ -235,7 +235,7 @@ export default function RegisterPelangganPage() {
                   <div className="relative flex items-center">
                     <div className="absolute left-4 flex items-center pointer-events-none">
                       <Image 
-                        src="/icons/key.png" 
+                        src="/icons/key1.png" 
                         alt="icon lock" 
                         width={16} 
                         height={16} 
@@ -258,9 +258,19 @@ export default function RegisterPelangganPage() {
                       className="absolute right-3 flex items-center opacity-50 hover:opacity-100 transition-opacity"
                     >
                       {showPassword ? (
-                        <Image src="/icons/visibility_off.png" alt="hide" width={18} height={18} />
+                        <Image 
+                          src="/icons/visibility_off1.png" 
+                          alt="hide" 
+                          width={18} 
+                          height={18} 
+                        />
                       ) : (
-                        <Image src="/icons/visibility.png" alt="show" width={18} height={18} />
+                        <Image 
+                          src="/icons/visibility1.png" 
+                          alt="show" 
+                          width={18} 
+                          height={18} 
+                        />
                       )}
                     </button>
                   </div>
@@ -274,7 +284,7 @@ export default function RegisterPelangganPage() {
                   <div className="relative flex items-center">
                     <div className="absolute left-4 flex items-center pointer-events-none">
                       <Image 
-                        src="/icons/key.png" 
+                        src="/icons/key1.png" 
                         alt="icon lock" 
                         width={16} 
                         height={16} 
@@ -298,14 +308,14 @@ export default function RegisterPelangganPage() {
                     >
                       {showConfirmPassword ? (
                         <Image 
-                          src="/icons/visibility_off.png" 
+                          src="/icons/visibility_off1.png" 
                           alt="hide" 
                           width={18} 
                           height={18} 
                         />
                       ) : (
                         <Image 
-                          src="/icons/visibility.png" 
+                          src="/icons/visibility1.png" 
                           alt="show" 
                           width={18} 
                           height={18} 
