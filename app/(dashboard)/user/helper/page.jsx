@@ -283,9 +283,9 @@ export default function HelperOrderPage() {
               </div>
 
               {/* Catatan Keterangan Tambahan */}
-              <p className="text-[11px] text-text-secondary mt-2 border-t border-outline-variant/30 pt-2 leading-relaxed">
-                *Biaya di atas murni merupakan tarif perjalanan driver menuju lokasi pengerjaan bantuan. Tarif upah jasa kerja Helper tidak termasuk dan dapat dinegosiasikan secara fleksibel bersama helper saat terhubung.
-              </p>
+                <p className="text-[11px] text-text-secondary mt-2 border-t border-outline-variant/30 pt-2 leading-relaxed">
+                  *Biaya transport di atas dihitung berdasarkan jarak tempuh dari titik pangkalan UIN Sultan Syarif Kasim Riau menuju lokasi pengerjaan bantuan Anda. Tarif upah jasa kerja Helper tidak termasuk dalam biaya ini dan dapat dinegosiasikan secara fleksibel bersama helper saat terhubung melalui WhatsApp.
+                </p>
             </div>
 
             <div className="mt-4">
