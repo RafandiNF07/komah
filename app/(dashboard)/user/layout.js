@@ -128,9 +128,9 @@ export default function UserDashboardLayout({ children }) {
           />
         </div>
 
-        {/* Profil Singkat Pelanggan */}
-        <div className="flex flex-col items-center mb-8 pb-4 border-b border-outline-variant w-full mt-10 md:mt-0">
-          <div className="w-24 h-24 rounded-full mb-3 overflow-hidden ring-2 ring-tertiary relative bg-surface-container-high flex items-center justify-center">
+        {/* Profil Singkat - Dibungkus agar tidak ikut ter-scroll jika menu panjang */}
+          <div className="flex flex-col items-center mb-6 pb-4 border-b border-outline-variant w-full mt-10 md:mt-0 flex-shrink-0">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full mb-3 overflow-hidden ring-2 ring-tertiary relative bg-surface-container-high flex items-center justify-center">
             {/* LOGIKA FOTO PROFIL DINAMIS */}
             {loading ? (
               // Loading skeleton for avatar
@@ -168,8 +168,8 @@ export default function UserDashboardLayout({ children }) {
           )}
         </div>
 
-        {/* Menu Navigasi */}
-        <ul className="flex flex-col gap-1.5 flex-1">
+        {/* MENU NAVIGASI - Tambahkan overflow-y-auto di sini */}
+        <ul className="flex flex-col gap-1.5 flex-1 overflow-y-auto scrollbar-hide">
           <li>
             <Link 
               href="/user" 
@@ -239,7 +239,8 @@ export default function UserDashboardLayout({ children }) {
         </ul>
 
         {/* Tombol Keluar (Memicu Modal) */}
-        <div className="mt-auto pt-4 border-t border-outline-variant">
+        {/* Tombol Keluar - Akan selalu muncul di bawah tanpa terhalang scroll */}
+        <div className="mt-auto pt-4 border-t border-outline-variant flex-shrink-0 bg-surface-container">
           <button 
             onClick={() => {
               setIsMobileSidebarOpen(false); // Tutup sidebar dulu jika di mobile
