@@ -81,8 +81,6 @@ export default function DriverProfilePage() {
       formData.append('foto', file);
       formData.append('role', 'driver'); // Memastikan masuk ke folder driver_profiles
 
-
-
       // 2. Tembak ke API Route upload internal
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
@@ -164,7 +162,6 @@ export default function DriverProfilePage() {
       setUploadingImage(false);
     }
   };
-
 
   // Handler simpan profil teks ke Supabase
   const handleSave = async () => {
@@ -370,26 +367,48 @@ export default function DriverProfilePage() {
 
           {/* Baris 1: Nama & WA */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* INPUT NAMA LENGKAP */}
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nama Lengkap</label>
-              <input
-                type="text"
-                value={namaLengkap}
-                onChange={(e) => setNamaLengkap(e.target.value)}
-                disabled={!isEditing}
-                className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
-              />
+              <div className="relative flex items-center">
+                {/* PERBAIKAN: Selalu warna asli (menghapus opacity-50) */}
+                <Image
+                  src="/icons/user.png"
+                  alt="nama"
+                  width={20}
+                  height={20}
+                  className="absolute left-3 object-contain" 
+                />
+                <input
+                  type="text"
+                  value={namaLengkap}
+                  onChange={(e) => setNamaLengkap(e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
             </div>
 
+            {/* INPUT WHATSAPP */}
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nomor WhatsApp</label>
-              <input
-                type="tel"
-                value={nomorWA}
-                onChange={(e) => setNomorWA(e.target.value)}
-                disabled={!isEditing}
-                className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
-              />
+              <div className="relative flex items-center">
+                <Image
+                  src="/icons/whatsapp.png"
+                  alt="whatsapp"
+                  width={20}
+                  height={20}
+                  className="absolute left-3 object-contain"
+                />
+                <input
+                  type="tel"
+                  value={nomorWA}
+                  onChange={(e) => setNomorWA(e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
             </div>
           </div>
 
@@ -402,7 +421,7 @@ export default function DriverProfilePage() {
                 alt="email"
                 width={20}
                 height={20}
-                className="absolute left-3"
+                className="absolute left-3 object-contain"
               />
               <input
                 type="email"
@@ -415,26 +434,47 @@ export default function DriverProfilePage() {
 
           {/* Baris 3: Plat Nomor & Jenis Kendaraan */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* INPUT PLAT NOMOR */}
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Plat Nomor Kendaraan</label>
-              <input
-                type="text"
-                value={platNomor}
-                onChange={(e) => setPlatNomor(e.target.value)}
-                disabled={!isEditing}
-                className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
-              />
+              <div className="relative flex items-center">
+                <Image
+                  src="/icons/motor.png"
+                  alt="plat"
+                  width={20}
+                  height={20}
+                  className="absolute left-3 object-contain"
+                />
+                <input
+                  type="text"
+                  value={platNomor}
+                  onChange={(e) => setPlatNomor(e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
             </div>
 
+            {/* INPUT JENIS KENDARAAN */}
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Jenis Kendaraan</label>
-              <input
-                type="text"
-                value={jenisKendaraan}
-                onChange={(e) => setJenisKendaraan(e.target.value)}
-                disabled={!isEditing}
-                className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
-              />
+              <div className="relative flex items-center">
+                <Image
+                  src="/icons/bike.png"
+                  alt="kendaraan"
+                  width={20}
+                  height={20}
+                  className="absolute left-3 object-contain"
+                />
+                <input
+                  type="text"
+                  value={jenisKendaraan}
+                  onChange={(e) => setJenisKendaraan(e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
             </div>
           </div>
 

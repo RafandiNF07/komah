@@ -305,7 +305,7 @@ export default function DriverOrdersPage() {
             <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-4 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary/20"></span>
               <Image 
-                src="/icons/gps.png" 
+                src="/icons/search1.png" 
                 alt="radar" 
                 width={40} 
                 height={40} 

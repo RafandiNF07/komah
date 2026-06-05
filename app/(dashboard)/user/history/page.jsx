@@ -60,7 +60,7 @@ export default function HistoryPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return; // Guard against null user on mount
+    if (!user) return;
 
     const timer = setTimeout(() => {
       fetchOrderHistory();
@@ -97,7 +97,7 @@ export default function HistoryPage() {
         .from('orders')
         .update({ status: 'cancelled' })
         .eq('id', orderId)
-        .eq('status', 'searching'); // double check security
+        .in('status', ['searching', 'accepted', 'on_the_way']);
 
       if (error) throw error;
       setFeedback({ type: 'success', message: 'Pesanan berhasil dibatalkan.' });
@@ -111,14 +111,16 @@ export default function HistoryPage() {
     }
   };
 
-  // Filter orders based on active tab
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'semua') return true;
     if (activeTab === 'aktif') {
       return ['searching', 'accepted', 'on_the_way'].includes(order.status);
     }
     if (activeTab === 'selesai') {
-      return ['completed', 'cancelled'].includes(order.status);
+      return order.status === 'completed';
+    }
+    if (activeTab === 'batal') {
+      return order.status === 'cancelled';
     }
     return true;
   });
@@ -132,7 +134,7 @@ export default function HistoryPage() {
       case 'delivery':
         return { imageSrc: '/icons/delivery2.png', bg: 'bg-purple/20' };
       case 'helper':
-        return { imageSrc: '/icons/heart.png', bg: 'bg-success/20' };
+        return { imageSrc: '/icons/helper.png', bg: 'bg-success/20' };
       default:
         return { imageSrc: '/icons/motor.png', bg: 'bg-surface-container-high' }; 
     }
@@ -180,7 +182,17 @@ export default function HistoryPage() {
               : 'bg-surface-container border border-outline-variant/50 text-text-secondary hover:text-tertiary hover:border-tertiary/50'
           }`}
         >
-          Selesai / Batal
+          Selesai
+        </button>
+        <button 
+          onClick={() => setActiveTab('batal')}
+          className={`px-5 py-2 rounded-full font-label-mono text-[14px] whitespace-nowrap transition-all ${
+            activeTab === 'batal' 
+              ? 'bg-tertiary text-on-tertiary font-bold shadow-md' 
+              : 'bg-surface-container border border-outline-variant/50 text-text-secondary hover:text-tertiary hover:border-tertiary/50'
+          }`}
+        >
+          Dibatalkan
         </button>
       </div>
 
@@ -223,53 +235,20 @@ export default function HistoryPage() {
                       'bg-close/20 text-cancel'
                     }`}>
 
-                      {isActive && 
-                        <Image 
-                          src="/icons/bike.png" 
-                          alt="bike"
-                          width={20} 
-                          height={20}
-                          className="object-contain"
-                        />
-                      }
-
-                      {order.status === 'completed' && 
-                        <Image 
-                          src="/icons/check.png" 
-                          alt="check"
-                          width={20} 
-                          height={20}
-                          className="object-contain"
-                        />
-                      }
-
-                      {order.status === 'cancelled' && 
-                        <Image 
-                          src="/icons/cancel.png" 
-                          alt="cancel"
-                          width={20} 
-                          height={20}
-                          className="object-contain"
-                        />
-                      }
-
+                      {isActive && <Image src="/icons/bike.png" alt="bike" width={20} height={20} className="object-contain" />}
+                      {order.status === 'completed' && <Image src="/icons/check.png" alt="check" width={20} height={20} className="object-contain" />}
+                      {order.status === 'cancelled' && <Image src="/icons/cancel.png" alt="cancel" width={20} height={20} className="object-contain" />}
                       {ORDER_STATUS[order.status]?.label || order.status}
                     </div>
                   </div>
 
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex flex-col md:flex-row justify-between gap-4">
                     <div className="space-y-3 flex-1">
                       <div className="flex items-start gap-3">
-                        <Image 
-                          src="/icons/jemput1.png" 
-                          alt="jemput"
-                          width={20} 
-                          height={20}
-                          className="object-contain"
-                        />
+                        <Image src="/icons/jemput1.png" alt="jemput" width={20} height={20} className="object-contain" />
                         <div>
                           <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">
-                            {order.type === 'delivery' ? 'Lokasi Pengambilan' : 'Titik Awal'}
+                            {order.type === 'delivery' ? 'Lokasi Pengambilan' : order.type === 'helper' ? 'Lokasi Pengerjaan' : 'Titik Awal'}
                           </p>
                           <p className="font-body-sm text-[13px] text-text-primary leading-snug">{order.pickup_location}</p>
                         </div>
@@ -277,13 +256,7 @@ export default function HistoryPage() {
                       
                       {order.destination_location && (
                         <div className="flex items-start gap-3">
-                          <Image 
-                            src="/icons/tujuan.png" 
-                            alt="tujuan"
-                            width={20} 
-                            height={20}
-                            className="object-contain"
-                          />
+                          <Image src="/icons/tujuan.png" alt="tujuan" width={20} height={20} className="object-contain" />
                           <div>
                             <p className="font-label-mono text-[11px] text-text-secondary mb-0.5">
                               {order.type === 'food' ? 'Lokasi Pengantaran' : 'Titik Tujuan'}
@@ -293,30 +266,54 @@ export default function HistoryPage() {
                         </div>
                       )}
 
-                      {/* Waktu Penjemputan */}
+                      {/* Waktu Penjemputan / Pengerjaan */}
                       <div className="flex items-start gap-3 border-t border-outline-variant/15 pt-2 mt-1">
-                        <Image 
-                          src="/icons/time.png" 
-                          alt="waktu"
-                          width={20} 
-                          height={20}
-                          className="object-contain"
-                        />
+                        <Image src="/icons/time.png" alt="waktu" width={20} height={20} className="object-contain" />
                         <div>
-                          <p className="font-label-mono text-[9px] text-tertiary mb-0.5 font-bold uppercase tracking-wider">Waktu Penjemputan</p>
+                          <p className="font-label-mono text-[9px] text-tertiary mb-0.5 font-bold uppercase tracking-wider">
+                            {order.type === 'helper' ? 'Waktu Pengerjaan' : 'Waktu Penjemputan'}
+                          </p>
                           <p className="font-body-sm text-[13px] font-bold text-text-primary leading-snug">
                             {formatDate(order.pickup_time)}
                           </p>
                         </div>
                       </div>
+
+                      {/* Detail Bantuan / Catatan Tambahan */}
+                      {order.notes && (
+                        <div className="flex items-start gap-3 border-t border-outline-variant/15 pt-2 mt-1">
+                          <Image src="/icons/notes.png" alt="notes" width={20} height={20} className="object-contain opacity-70" />
+                          <div>
+                            <p className="font-label-mono text-[9px] text-text-secondary mb-0.5 uppercase tracking-wider">
+                              {order.type === 'helper' ? 'Detail Bantuan' : 'Catatan Tambahan'}
+                            </p>
+                            <p className="font-body-sm text-[12px] text-text-primary italic leading-snug line-clamp-2">
+                              &quot;{order.notes}&quot;
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex flex-row md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-outline-variant/30 pt-3 md:pt-0 md:pl-4 min-w-[120px]">
-                      <p className="font-label-mono text-[11px] text-text-secondary">Total Biaya</p>
-                      <p className="font-headline-sm text-[18px] font-bold text-text-primary">
-                        {formatRupiah(order.total_price)}
-                      </p>
-                      <p className="font-label-mono text-[10px] text-outline mt-1 hidden md:block uppercase">{order.order_number}</p>
+                    {/* --- REVISI TAMPILAN BIAYA & JARAK ESTIMASI --- */}
+                    <div className="flex flex-row md:flex-col items-end justify-between md:justify-center border-t md:border-t-0 md:border-l border-outline-variant/30 pt-3 md:pt-0 md:pl-4 min-w-[130px]">
+                      <div className="text-left md:text-right">
+                        <p className="font-label-mono text-[11px] text-text-secondary">
+                          {order.type === 'helper' ? 'Biaya Transport' : 'Total Biaya'}
+                        </p>
+                        {/* Menampilkan label Jarak jika data tersedia di database */}
+                        {order.distance_estimate > 0 && (
+                          <p className="font-label-mono text-[10px] text-tertiary mt-0.5 font-bold">
+                            Jarak: {order.distance_estimate} km
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right flex flex-col items-end">
+                        <p className="font-headline-sm text-[18px] font-bold text-text-primary mt-1 md:mt-0">
+                          {formatRupiah(order.total_price)}
+                        </p>
+                        <p className="font-label-mono text-[10px] text-outline mt-1 hidden md:block uppercase tracking-wider">{order.order_number}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -325,22 +322,9 @@ export default function HistoryPage() {
                     <div className="mt-4 p-3 bg-surface-container rounded-xl border border-outline-variant/20 flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center overflow-hidden relative">
                         {order.driver.avatar_url ? (
-                          <Image 
-                            src={order.driver.avatar_url} 
-                            alt="Foto Profil Driver" 
-                            width={40} 
-                            height={40} 
-                            unoptimized
-                            className="object-cover w-full h-full"
-                          />
+                          <Image src={order.driver.avatar_url} alt="Foto Profil Driver" width={40} height={40} unoptimized className="object-cover w-full h-full" />
                         ) : (
-                          <Image 
-                            src="/icons/person.png" 
-                            alt="person" 
-                            width={20} 
-                            height={20} 
-                            className="object-contain"
-                          />
+                          <Image src="/icons/person.png" alt="person" width={20} height={20} className="object-contain" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -365,22 +349,13 @@ export default function HistoryPage() {
                           href={buildWhatsAppUrl(order.service_details?.whatsapp_number || order.driver.phone_number, order.order_number)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 py-2 bg-surface-container-high text-text-primary font-label-mono text-[13px] rounded-lg hover:bg-tertiary hover:text-on-tertiary transition-colors text-center font-bold flex items-center justify-center gap-1.5"
+                          className="flex-1 flex flex-col lg:flex-row items-center justify-center gap-1 lg:gap-2 py-2 lg:py-3 bg-[#25D366]/10 border border-[#25D366]/30 text-[#1DA851] rounded-xl font-label-mono text-[11px] lg:text-[13px] font-bold hover:bg-[#25D366] hover:text-white transition-colors active:scale-95 text-center leading-tight"
                         >
-                          <Image 
-                            src="/icons/whatsapp.png" 
-                            alt="wa" 
-                            width={16} 
-                            height={16} 
-                            className="object-contain" 
-                          />
-                          Hubungi Driver ({order.driver.full_name})
+                          <Image src="/icons/whatsapp.png" alt="wa" width={18} height={18} className="object-contain" />
+                          <span>Hubungi Driver</span>
                         </a>
                       ) : (
-                        <button 
-                          disabled 
-                          className="flex-1 py-2 bg-surface-container-high text-outline font-label-mono text-[13px] rounded-lg cursor-not-allowed text-center"
-                        >
+                        <button disabled className="flex-1 py-2 bg-surface-container-high text-outline font-label-mono text-[13px] rounded-lg cursor-not-allowed text-center">
                           Mencari Driver...
                         </button>
                       )}
@@ -404,13 +379,7 @@ export default function HistoryPage() {
                         onClick={() => generateOrderReceipt(order)}
                         className="flex items-center gap-2 px-4 py-2 bg-tertiary/10 hover:bg-tertiary/20 text-tertiary font-label-mono text-[12px] font-bold rounded-lg border border-tertiary/30 transition-all active:scale-95"
                       >
-                        <Image 
-                          src="/icons/pdf.png" 
-                          alt="pdf" 
-                          width={16} 
-                          height={16} 
-                          className="object-contain"
-                        />
+                        <Image src="/icons/pdf.png" alt="pdf" width={16} height={16} className="object-contain" />
                         Cetak Bukti
                       </button>
                     </div>
@@ -422,35 +391,20 @@ export default function HistoryPage() {
           ) : (
             <div className="bg-surface-container border border-outline-variant/30 rounded-2xl p-8 flex flex-col items-center justify-center text-center mt-8">
               <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-4">
-                <Image 
-                  src="/icons/notes.png" 
-                  alt="receipt" 
-                  width={48} 
-                  height={48} 
-                  className="opacity-40 animate-pulse" 
-                />
+                <Image src="/icons/notes.png" alt="receipt" width={48} height={48} className="opacity-40 animate-pulse" />
               </div>
               <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-2">Belum Ada Riwayat</h3>
               <p className="font-body-sm text-[14px] text-text-secondary max-w-sm mb-6">
-                Anda belum memiliki pesanan. Yuk cobain layanan KOMAH sekarang!
+                Anda belum memiliki pesanan dengan filter ini. Yuk cobain layanan KOMAH sekarang!
               </p>
-              <Link 
-                href="/user" 
-                className="px-6 py-2.5 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/20 transition-all font-label-mono text-[14px]"
-              >
+              <Link href="/user" className="px-6 py-2.5 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg hover:-translate-y-1 hover:shadow-tertiary/20 transition-all font-label-mono text-[14px]">
                 Pesan Layanan
               </Link>
             </div>
           )
         ) : (
           <div className="p-8 text-center text-[14px] text-text-secondary">
-            <Image 
-              src="/icons/loading.png" 
-              alt="loading" 
-              width={35} 
-              height={35} 
-              className="animate-spin object-contain mx-auto" 
-            />
+            <Image src="/icons/loading.png" alt="loading" width={35} height={35} className="animate-spin object-contain mx-auto" />
             <p className="mt-2">Memuat riwayat pesanan...</p>
           </div>
         )} 
