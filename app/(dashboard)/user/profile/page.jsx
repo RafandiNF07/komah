@@ -77,8 +77,6 @@ export default function ProfilePage() {
       formData.append('foto', file);
       formData.append('role', 'customer'); // Memastikan masuk ke folder customer_profiles
 
-
-
       // 2. Kirim data ke API Route upload internal
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
@@ -161,7 +159,6 @@ export default function ProfilePage() {
     }
   };
 
-
   // Handler simpan profil teks ke Supabase
   const handleSave = async () => {
     if (!user) return;
@@ -178,9 +175,7 @@ export default function ProfilePage() {
 
       setIsEditing(false);
       setFeedback({ type: 'success', message: 'Profil berhasil diperbarui!' });
-      // Refetch profile data so sidebar also updates
       refetch();
-      // Dispatch event so layout sidebar name updates immediately
       window.dispatchEvent(new Event('profilePictureUpdated'));
     } catch (err) {
       console.error('Save profile error:', err);
@@ -199,7 +194,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Determine the avatar source: profile.avatar_url from Cloudinary/Supabase, fallback to local state
   const avatarSrc = profile?.avatar_url || profileImage;
 
   // Loading state
@@ -266,7 +260,6 @@ export default function ProfilePage() {
         {/* FOTO PROFIL */}
         <div className="flex flex-col items-center mb-6 pb-6 border-b border-outline-variant/30">
 
-          {/* Input File Tersembunyi */}
           <input
             type="file"
             accept="image/*"
@@ -300,7 +293,6 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Tombol Pensil Kecil */}
             {isEditing && (
               <button
                 onClick={() => fileInputRef.current.click()}
@@ -346,29 +338,51 @@ export default function ProfilePage() {
         <div className="space-y-4">
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* INPUT NAMA LENGKAP DENGAN ICON */}
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nama Lengkap</label>
-              <input
-                type="text"
-                value={namaLengkap}
-                onChange={(e) => setNamaLengkap(e.target.value)}
-                disabled={!isEditing}
-                className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
-              />
+              <div className="relative flex items-center">
+                <Image
+                  src="/icons/user.png"
+                  alt="nama"
+                  width={20}
+                  height={20}
+                  className="absolute left-3 object-contain"
+                />
+                <input
+                  type="text"
+                  value={namaLengkap}
+                  onChange={(e) => setNamaLengkap(e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
             </div>
 
+            {/* INPUT WHATSAPP DENGAN ICON */}
             <div className="space-y-1.5">
               <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Nomor WhatsApp</label>
-              <input
-                type="tel"
-                value={nomorWA}
-                onChange={(e) => setNomorWA(e.target.value)}
-                disabled={!isEditing}
-                className="w-full px-4 py-2.5 bg-surface-container-high border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
-              />
+              <div className="relative flex items-center">
+                <Image
+                  src="/icons/whatsapp.png"
+                  alt="whatsapp"
+                  width={20}
+                  height={20}
+                  className="absolute left-3 object-contain"
+                />
+                <input
+                  type="tel"
+                  value={nomorWA}
+                  onChange={(e) => setNomorWA(e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-variant/20 border border-outline-variant/30 rounded-xl text-text-primary font-body-md text-[13px] disabled:opacity-60 focus:border-tertiary focus:outline-none transition-colors"
+                />
+              </div>
             </div>
           </div>
 
+          {/* EMAIL SEBAGAI CONTOH SAMA SEPERTI DI ATAS */}
           <div className="space-y-1.5">
             <label className="font-label-mono text-[12px] text-on-surface-variant ml-1">Email Students</label>
             <div className="relative flex items-center">
@@ -377,7 +391,7 @@ export default function ProfilePage() {
                 alt="email"
                 width={20}
                 height={20}
-                className="absolute left-3"
+                className="absolute left-3 object-contain"
               />
               <input
                 type="email"

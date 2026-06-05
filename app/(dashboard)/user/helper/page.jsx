@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { createClient } from '@/lib/supabase/client';
-import { PRICING } from '@/lib/constants';
+import { PRICING, formatRupiah } from '@/lib/constants'; // Ditambahkan formatRupiah dari konstanta
 
-// Import MapPicker dynamically to prevent SSR/Leaflet window not found error
+// Import MapPicker secara dinamis untuk mencegah error window not found pada SSR/Leaflet
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false });
 
 export default function HelperOrderPage() {
@@ -19,15 +19,17 @@ export default function HelperOrderPage() {
   const [pickupTime, setPickupTime] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
   
-  // Helper specific fields
+  // Bidang spesifik Helper
   const [taskDescription, setTaskDescription] = useState('');
 
-  // Location states
+  // Status Lokasi & Perhitungan Jarak Dinamis
   const [pickup, setPickup] = useState(null); // { lat, lng, address }
+  const [distance, setDistance] = useState(0);
+  const [travelFee, setTravelFee] = useState(0);
 
   const [error, setError] = useState('');
 
-  // Autofill WhatsApp number when profile loaded
+  // Mengisi otomatis nomor WhatsApp ketika profil berhasil dimuat
   useEffect(() => {
     if (profile) {
       const timer = setTimeout(() => {
@@ -36,6 +38,37 @@ export default function HelperOrderPage() {
       return () => clearTimeout(timer);
     }
   }, [profile]);
+
+  // --- LOGIKA REAL-TIME UNTUK MENGHITUNG JARAK TEMPUH & TARIF DRIVER ---
+  useEffect(() => {
+    if (pickup) {
+      // Koordinat Titik Pusat / Rektorat UIN Suska Riau sebagai acuan pangkalan driver
+      const uinLat = 0.4614;
+      const uinLng = 101.3631;
+      
+      // Rumus Haversine untuk kalkulasi jarak koordinat bumi
+      const R = 6371; // Radius bumi dalam kilometer
+      const dLat = (pickup.lat - uinLat) * Math.PI / 180;
+      const dLon = (pickup.lng - uinLng) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(uinLat * Math.PI / 180) * Math.cos(pickup.lat * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const d = R * c;
+      
+      const estimatedDistance = parseFloat(d.toFixed(1)); // Ambil 1 angka di belakang koma (ex: 2.3 km)
+      setDistance(estimatedDistance);
+
+      // Skema Tarif KOMAH: Rp5.000 untuk 1 km pertama, bertambah Rp2.000 setiap km berikutnya
+      const fee = estimatedDistance <= 1 
+        ? 5000 
+        : 5000 + Math.ceil(estimatedDistance - 1) * 2000;
+      setTravelFee(fee);
+    } else {
+      setDistance(0);
+      setTravelFee(0);
+    }
+  }, [pickup]);
 
   const handleOrder = async (e) => {
     e.preventDefault();
@@ -66,19 +99,19 @@ export default function HelperOrderPage() {
     try {
       const supabase = createClient();
 
-      // Convert HH:MM to ISO TIMESTAMPTZ
+      // Mengonversi HH:MM ke format ISO TIMESTAMPTZ
       const [hours, minutes] = pickupTime.split(':').map(Number);
       const targetTime = new Date();
       targetTime.setHours(hours || 0, minutes || 0, 0, 0);
       if (targetTime < new Date()) {
-        targetTime.setDate(targetTime.getDate() + 1); // assume tomorrow if time passed
+        targetTime.setDate(targetTime.getDate() + 1); // Asumsikan besok jika jam sudah lewat
       }
 
       const { data, error: insertError } = await supabase.from('orders').insert({
         customer_id: user.id,
         type: 'helper',
-        total_price: PRICING.HELPER_MIN_PRICE,
-        distance_estimate: 0,
+        total_price: travelFee, // Menggunakan tarif perjalanan hasil kalkulasi dinamis
+        distance_estimate: distance, // Menyimpan hasil estimasi jarak rill
         notes: taskDescription,
         pickup_location: pickup.address,
         pickup_lat: pickup.lat,
@@ -104,28 +137,22 @@ export default function HelperOrderPage() {
     }
   };
 
-  // Logika pintar untuk memformat dan membatasi input jam
   const handleTimeChange = (e) => {
-    let value = e.target.value.replace(/\D/g, ''); // Hapus semua huruf/simbol, sisakan angka
+    let value = e.target.value.replace(/\D/g, ''); 
 
-    // Batasi jam (HH) maksimal 23
     if (value.length >= 1) {
-      if (parseInt(value[0]) > 2) value = '2'; // Angka pertama maksimal 2
+      if (parseInt(value[0]) > 2) value = '2'; 
     }
     if (value.length >= 2) {
       if (parseInt(value[0]) === 2 && parseInt(value[1]) > 3) {
-        value = '23'; // Kalau depannya 2, angka kedua maksimal 3
+        value = '23'; 
       }
     }
-
-    // Batasi menit (MM) maksimal 59
     if (value.length >= 3) {
       if (parseInt(value[2]) > 5) {
-        value = value.slice(0, 2) + '5'; // Angka ketiga (puluhan menit) maksimal 5
+        value = value.slice(0, 2) + '5'; 
       }
     }
-
-    // Sisipkan titik dua otomatis
     if (value.length >= 3) {
       value = value.slice(0, 2) + ':' + value.slice(2, 4);
     }
@@ -149,13 +176,7 @@ export default function HelperOrderPage() {
 
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-success/15">
-            <Image
-              src="/icons/helper.png" 
-              alt="helper"
-              width={30}
-              height={30}
-              className="object-contain" 
-            />
+            <Image src="/icons/helper.png" alt="helper" width={30} height={30} className="object-contain" />
           </div>
           <div>
             <h1 className="font-headline-md text-[24px] md:text-[28px] font-bold text-text-primary">
@@ -176,7 +197,6 @@ export default function HelperOrderPage() {
         <div className="lg:col-span-2 space-y-6">
           <form className="bg-surface-container rounded-2xl p-5 md:p-6 border border-outline-variant/30 shadow-lg space-y-5" onSubmit={handleOrder}>
             
-            {/* Map Picker untuk Lokasi Pengerjaan */}
             <MapPicker
               label="Lokasi Pengerjaan"
               placeholder="Pilih lokasi pengerjaan bantuan pada peta atau gunakan lokasi saat ini"
@@ -184,9 +204,7 @@ export default function HelperOrderPage() {
               onLocationSelect={(loc) => setPickup(loc)}
             />
 
-            {/* Bagian Waktu & WhatsApp */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-              
               <div className="space-y-2">
                 <label className="block font-label-mono text-[13px] text-on-surface-variant ml-1">Jam Pengerjaan</label>
                 <div className="relative flex items-center">
@@ -206,13 +224,7 @@ export default function HelperOrderPage() {
               <div className="space-y-2">
                 <label className="block font-label-mono text-[13px] text-on-surface-variant ml-1">Nomor WhatsApp Anda</label>
                 <div className="relative flex items-center">
-                  <Image 
-                    src="/icons/whatsapp1.png" 
-                    alt="whatsapp" 
-                    width={20} 
-                    height={20} 
-                    className="absolute left-4"
-                  />
+                  <Image src="/icons/whatsapp1.png" alt="whatsapp" width={20} height={20} className="absolute left-4" />
                   <input 
                     type="tel" 
                     required 
@@ -223,7 +235,6 @@ export default function HelperOrderPage() {
                   />
                 </div>
               </div>
-          
             </div>
 
             <div className="space-y-1.5">
@@ -240,22 +251,41 @@ export default function HelperOrderPage() {
           </form>
         </div>
 
+        {/* ================= REVISI RINGKASAN PESANAN (SIDEBAR) ================= */}
         <div className="space-y-6">
           <div className="bg-surface-container rounded-2xl p-5 md:p-6 border border-outline-variant/30 shadow-lg flex flex-col h-full sticky top-24">
-            <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-4 border-b border-outline-variant/30 pb-3">Ringkasan Helper</h3>
+            <h3 className="font-headline-sm text-[18px] font-bold text-text-primary mb-4 border-b border-outline-variant/30 pb-3">Ringkasan Pesanan</h3>
             
             <div className="space-y-3 flex-1">
+              {/* Row 1: Estimasi Jarak Tempuh */}
+              <div className="flex justify-between items-center text-[14px]">
+                <span className="text-text-secondary font-body-sm">Jarak Estimasi</span>
+                <span className="font-bold text-text-primary font-label-mono">
+                  {pickup ? `${distance} km` : '-'}
+                </span>
+              </div>
+
+              {/* Row 2: Metode Pembayaran */}
               <div className="flex justify-between items-center text-[14px]">
                 <span className="text-text-secondary font-body-sm">Pembayaran</span>
                 <span className="text-tertiary font-label-mono bg-tertiary/10 px-2 py-0.5 rounded text-[12px]">Tunai (Cash)</span>
               </div>
+
+              {/* Garis batas gradien cantik seperti contoh Ride */}
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-outline-variant to-transparent my-4"></div>
+
+              {/* Row 3: Total Ongkos Perjalanan Driver */}
               <div className="flex justify-between items-end mb-4 text-[14px]">
-                <span className="text-text-primary font-body-sm">Biaya Minimum</span>
-                <span className="text-[18px] font-bold text-success font-label-mono">
-                  Rp {PRICING.HELPER_MIN_PRICE.toLocaleString('id-ID')}
+                <span className="text-text-primary font-body-sm">Estimasi Harga (Transport)</span>
+                <span className="text-[20px] font-bold text-success font-label-mono">
+                  {pickup ? formatRupiah(travelFee) : 'Rp 0'}
                 </span>
               </div>
-              <p className="text-[12px] text-text-secondary mt-2 border-t border-outline-variant/30 pt-2">*Harga akhir dapat dinegosiasikan langsung dengan Helper tergantung tingkat kesulitan.</p>
+
+              {/* Catatan Keterangan Tambahan */}
+              <p className="text-[11px] text-text-secondary mt-2 border-t border-outline-variant/30 pt-2 leading-relaxed">
+                *Biaya di atas murni merupakan tarif perjalanan driver menuju lokasi pengerjaan bantuan. Tarif upah jasa kerja Helper tidak termasuk dan dapat dinegosiasikan secara fleksibel bersama helper saat terhubung.
+              </p>
             </div>
 
             <div className="mt-4">
@@ -266,13 +296,7 @@ export default function HelperOrderPage() {
               >
                 {isLoading ? (
                   <>
-                    <Image 
-                      src="/icons/loading.png" 
-                      alt="loading" 
-                      width={20} 
-                      height={20} 
-                      className="animate-spin object-contain" 
-                    />
+                    <Image src="/icons/loading.png" alt="loading" width={20} height={20} className="animate-spin object-contain" />
                     Mencari Driver...
                   </>
                 ) : (

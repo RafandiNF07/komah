@@ -40,8 +40,8 @@ export default function LandingPage() {
       </h2>
     </div>
 
-    <div className="space-y-6 text-left">
-      <p className="font-body-lg text-[18px] text-text-secondary leading-relaxed">
+    <div className="space-y-6 text-justify">
+      <p className="font-body-lg text-[16px] text-text-secondary leading-relaxed">
         <span className="font-bold text-tertiary">KOMAH (Kece Ojek Mahasiswa)</span> adalah
         layanan transportasi dan kurir berbasis website yang dibuat khusus untuk
         memenuhi kebutuhan sehari-hari mahasiswa UIN SUSKA RIAU. Berawal dari masalah
@@ -211,7 +211,7 @@ export default function LandingPage() {
       </section>
 
       {/* Tarif Section */}
-      <section className="py-24 px-container-margin relative" id="tarif">
+      <section className="py-24 px-container-margin relative overflow-hidden" id="tarif">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-tertiary/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <h2 className="font-display-lg text-[28px] md:text-[36px] mb-12 font-bold text-text-primary tracking-tight">Tarif Transparan</h2>

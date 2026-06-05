@@ -7,10 +7,15 @@ export const metadata = {
   keywords: ['KOMAH', 'ojek kampus', 'ride hailing mahasiswa', 'UIN SUSKA'],
   themeColor: '#000000',
   icons: {
-    icon: '/icons/logo.png',
-    shortcut: '/icons/logo.png',
-    apple: '/icons/logo.png',
+    icon: '/icons/favicon1.png',
+    shortcut: '/icons/favicon1.png',
+    apple: '/icons/favicon1.png',
   },
+};
+
+// Tambahkan blok ini di bawah blok metadata tadi
+export const viewport = {
+  themeColor: '#000000',
 };
 
 export default function RootLayout({ children }) {

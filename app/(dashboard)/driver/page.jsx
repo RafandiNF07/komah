@@ -288,21 +288,16 @@ export default function DriverDashboardPage() {
           <p className="font-headline-md text-[18px] md:text-[24px] font-bold text-tertiary">{stats.todayTrips}</p>
         </div>
 
-        {/* Kartu 3: Total Order (Minggu) */}
-        <div className="col-span-2 md:col-span-1 bg-surface-container p-4 md:p-5 rounded-2xl border border-outline-variant/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-purple/50 flex flex-col justify-center">
+        {/* --- PERBAIKAN DI SINI (KARTU 3: TOTAL PESANAN MINGGUAN) --- */}
+        {/* Menggunakan justify-self-center dan max-w agar di mobile ukurannya pas di tengah, tidak melar sepenuh layar hp */}
+        <div className="col-span-2 justify-self-center w-full max-w-[calc(50%-6px)] md:col-span-1 md:justify-self-stretch md:max-w-none bg-surface-container p-4 md:p-5 rounded-2xl border border-outline-variant/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-purple/50 flex flex-col justify-center">
           <div className="flex justify-between items-start mb-3 md:mb-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple/20">
-              <Image 
-                src="/icons/notes.png" 
-                alt="order" 
-                width={20} 
-                height={20} 
-                className="object-contain"
-              />
+              <Image src="/icons/notes.png" alt="order" width={20} height={20} className="object-contain" />
             </div>
           </div>
           <h3 className="font-label-mono text-[11px] md:text-[12px] text-text-secondary mb-1">Total Order (Minggu)</h3>
-          <p className="font-headline-md text-[18px] md:text-[24px] font-bold text-secondary">{stats.weekTrips}</p>
+          <p className="font-headline-md text-[18px] md:text-[24px] font-bold text-purple-600">{stats.weekTrips}</p>
         </div>
 
       </div>
@@ -478,7 +473,7 @@ export default function DriverDashboardPage() {
                   href={buildWhatsAppUrl(activeOrder.service_details?.whatsapp_number || activeOrder.customer?.phone_number, activeOrder.order_number)}
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex-1 lg:flex-none flex items-center justify-center gap-2 py-3 bg-[#25D366]/10 border border-[#25D366]/30 text-[#1DA851] rounded-xl font-label-mono text-[13px] font-bold hover:bg-[#25D366] hover:text-white transition-colors active:scale-95 text-center"
+                  className="flex-1 lg:flex-none flex flex-col lg:flex-row items-center justify-center gap-2 py-3 bg-[#25D366]/10 border border-[#25D366]/30 text-[#1DA851] rounded-xl font-label-mono text-[13px] font-bold hover:bg-[#25D366] hover:text-white transition-colors active:scale-95 text-center"
                 >
                   <Image 
                     src="/icons/whatsapp.png" 
