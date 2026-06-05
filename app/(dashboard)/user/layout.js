@@ -114,7 +114,7 @@ export default function UserDashboardLayout({ children }) {
 
 
       {/* ================= SIDEBAR (DESKTOP & MOBILE) ================= */}
-      <nav className={`flex flex-col h-screen p-4 border-r border-outline-variant bg-surface-container shadow-2xl md:shadow-none w-64 fixed left-0 top-0 z-50 transition-transform duration-300 ease-in-out ${
+      <nav className={`flex flex-col h-[100dvh] p-4 border-r border-outline-variant bg-surface-container shadow-2xl md:shadow-none w-64 fixed left-0 top-0 z-50 transition-transform duration-300 ease-in-out ${
         isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         
